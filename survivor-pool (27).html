@@ -1,0 +1,2387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>March Madness Survivor Pool 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10; --surface: #12151c; --surface2: #1a1f2a; --border: #252b38;
+    --accent: #f97316; --accent2: #3b82f6; --gold: #f59e0b;
+    --green: #22c55e; --red: #ef4444; --text: #e8eaf0; --muted: #6b7280;
+    --safe: #1a2e1a; --safe-border: #22c55e; --danger: #2e1a1a; --danger-border: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 13px 22px; display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 25px; letter-spacing: 2px; color: var(--accent); flex-shrink: 0; }
+  .htag { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); background: var(--surface2); padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+  .alive-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gold); }
+
+  .refresh-btn {
+    display: flex; align-items: center; gap: 7px; padding: 7px 13px;
+    border-radius: 6px; border: 1px solid var(--accent2); background: rgba(59,130,246,0.08);
+    color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+  .refresh-btn:hover { background: rgba(59,130,246,0.18); }
+  .refresh-btn.loading { opacity: 0.6; pointer-events: none; }
+  .refresh-btn svg { flex-shrink: 0; }
+  .refresh-btn.loading svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .view-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .view-btn { padding: 6px 13px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.15s; }
+  .view-btn.active { background: var(--surface); color: var(--text); }
+
+  .app { display: flex; flex-direction: column; height: calc(100vh - 109px); overflow: hidden; }
+
+  .entries-panel { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+  .panel-header { padding: 13px 17px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: var(--muted); }
+  .entries-list { flex: 1; overflow-y: auto; padding: 9px; display: flex; flex-direction: column; gap: 6px; }
+
+  .entry-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; }
+  .entry-card:hover { border-color: var(--accent); }
+  .entry-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .entry-card.eliminated { opacity: 0.4; border-color: var(--red); }
+  .entry-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .entry-name { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1px; }
+  .entry-status { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 5px; border-radius: 3px; }
+  .status-alive { background: var(--safe); color: var(--green); border: 1px solid var(--safe-border); }
+  .status-dead { background: var(--danger); color: var(--red); border: 1px solid var(--danger-border); }
+  .entry-picks { display: flex; flex-wrap: wrap; gap: 3px; }
+  .pick-chip { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 5px; border-radius: 3px; background: var(--surface); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+  .pick-chip.used { color: var(--accent); border-color: var(--accent); background: rgba(249,115,22,0.08); }
+  .pick-chip.lost { color: var(--red); border-color: var(--red); background: rgba(239,68,68,0.08); text-decoration: line-through; }
+  .pick-chip.today { color: var(--gold); border-color: var(--gold); background: rgba(245,158,11,0.1); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.6} }
+
+  .main-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .day-tabs { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; overflow-x: auto; flex-shrink: 0; }
+  .day-tab { padding: 11px 16px; cursor: pointer; border-bottom: 3px solid transparent; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .day-tab:hover { color: var(--text); }
+  .day-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .day-tab .tab-date { font-size: 9px; color: var(--muted); }
+  .day-tab.has-results .tab-label::after { content: ' ✓'; color: var(--green); font-size: 9px; }
+  .content-area { flex: 1; overflow-y: auto; padding: 20px; }
+
+  .day-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+  .day-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; }
+  .day-subtitle { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  .results-banner { background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.22); border-radius: 8px; padding: 11px 15px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+  .results-banner-title { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--green); margin-bottom: 5px; }
+  .results-banner-items { display: flex; flex-wrap: wrap; gap: 5px; }
+  .result-pill { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 7px; border-radius: 3px; border: 1px solid; }
+  .result-pill.win { background: rgba(34,197,94,0.09); color: var(--green); border-color: rgba(34,197,94,0.28); }
+  .result-pill.upset { background: rgba(239,68,68,0.09); color: var(--red); border-color: rgba(239,68,68,0.28); }
+
+  .entry-path-header { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .path-entry-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1.5px; flex-shrink: 0; }
+  .path-used-teams { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+  .used-badge { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; background: rgba(249,115,22,0.08); color: var(--accent); border: 1px solid rgba(249,115,22,0.28); text-decoration: line-through; }
+  .used-badge.lost-pick { background: rgba(239,68,68,0.08); color: var(--red); border-color: rgba(239,68,68,0.28); }
+
+  .rec-panel { background: var(--surface2); border: 1px solid var(--gold); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .rec-panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 1.5px; color: var(--gold); margin-bottom: 9px; }
+  .rec-item { display: flex; align-items: center; gap: 11px; padding: 8px 10px; background: var(--surface); border-radius: 5px; border: 1px solid var(--border); }
+  .rec-entry-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); width: 52px; flex-shrink: 0; }
+  .rec-team { font-weight: 600; font-size: 13px; flex: 1; }
+  .rec-seed { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+
+  .games-section { margin-bottom: 24px; }
+  .games-section-title { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 8px; }
+
+  .game-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: all 0.15s; cursor: pointer; }
+  .game-card:hover:not(.already-used) { border-color: var(--accent2); transform: translateY(-1px); }
+  .game-card.recommended { border-color: var(--gold); box-shadow: 0 0 10px rgba(245,158,11,0.12); }
+  .game-card.already-used { opacity: 0.32; pointer-events: none; }
+  .game-card.selected-pick { border-color: var(--accent); box-shadow: 0 0 10px rgba(249,115,22,0.18); }
+  .game-card.result-upset { border-color: var(--red); }
+
+  .game-header { padding: 6px 10px; background: var(--surface); display: flex; align-items: center; justify-content: space-between; }
+  .game-round-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  .gbadge { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+
+  .game-matchup { padding: 10px; }
+  .team-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px; cursor: pointer; border-radius: 3px; transition: background 0.1s; position: relative; }
+  .team-row:hover { background: rgba(255,255,255,0.04); }
+  .team-row + .team-row { border-top: 1px solid var(--border); }
+  .seed-badge { font-family: 'DM Mono', monospace; font-size: 10px; width: 19px; text-align: center; color: var(--muted); flex-shrink: 0; }
+  .team-name { font-weight: 600; font-size: 13px; flex: 1; cursor: pointer; }
+  .team-name.fav { color: var(--text); }
+  .team-name.dog { color: var(--muted); }
+  .team-name.winner { color: var(--green) !important; }
+  .team-name.loser { color: var(--red) !important; text-decoration: line-through; }
+  .kp-rank { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); flex-shrink: 0; }
+  .kp-info-icon { font-size: 9px; color: var(--accent2); flex-shrink: 0; opacity: 0.6; }
+  .team-row:hover .kp-info-icon { opacity: 1; }
+  .win-prob { font-family: 'DM Mono', monospace; font-size: 11px; flex-shrink: 0; }
+  .win-prob.hi { color: var(--green); }
+  .win-prob.md { color: var(--gold); }
+  .win-prob.lo { color: var(--muted); }
+
+  .game-footer { padding: 6px 10px; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .fv { font-family: 'DM Mono', monospace; font-size: 9px; }
+  .fv.elite { color: var(--gold); }
+  .fv.high { color: var(--green); }
+  .fv.mid { color: var(--accent2); }
+  .fv.ok { color: var(--muted); }
+  .save-warn { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); padding: 1px 5px; border-radius: 2px; border: 1px solid rgba(249,115,22,.28); background: rgba(249,115,22,.07); margin-top: 2px; display: inline-block; }
+
+  .pick-btn { padding: 4px 9px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 10px; cursor: pointer; border: 1px solid var(--accent); background: transparent; color: var(--accent); transition: all 0.15s; }
+  .pick-btn:hover { background: var(--accent); color: white; }
+  .pick-btn.picked { background: var(--accent); color: white; }
+  .pick-btn.rm { border-color: var(--red); color: var(--red); }
+  .pick-btn.rm:hover { background: var(--red); color: white; }
+  .result-badge { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+  .result-badge.final { background: rgba(34,197,94,.09); color: var(--green); border: 1px solid rgba(34,197,94,.28); }
+  .result-badge.upset { background: rgba(239,68,68,.09); color: var(--red); border: 1px solid rgba(239,68,68,.28); }
+
+  .path-table-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+  .path-table-header { padding: 12px 17px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .path-table-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1.5px; color: var(--accent2); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: left; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .td-day { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .td-pick { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 0.5px; }
+  .td-pick.elite { color: var(--gold); } .td-pick.high { color: var(--green); } .td-pick.mid { color: var(--accent2); } .td-pick.ok { color: var(--muted); }
+  .td-prob { font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; }
+
+  /* KP DRAWER */
+  .kp-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 900; }
+  .kp-overlay.open { display: block; }
+  .kp-drawer { position: fixed; top: 0; right: -460px; width: 440px; height: 100vh; background: var(--surface); z-index: 901; overflow-y: auto; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); box-shadow: -4px 0 32px rgba(0,0,0,0.4); border-left: 1px solid var(--border); }
+  .kp-drawer.open { right: 0; }
+  .kp-drawer-header { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); position: sticky; top: 0; z-index: 2; }
+  .kp-close-btn { position: absolute; top: 18px; right: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: var(--muted); transition: all 0.15s; }
+  .kp-close-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .kp-team-name { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1.5px; margin-bottom: 3px; }
+  .kp-team-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .kp-seed-chip { display: inline-block; margin-top: 8px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 3px 9px; border-radius: 4px; }
+  .kp-body { padding: 18px 22px 40px; }
+  .kp-section { margin-bottom: 22px; }
+  .kp-section-title { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .kp-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .kp-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 10px 10px; text-align: center; }
+  .kp-stat-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.5px; }
+  .kp-stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; margin-bottom: 3px; }
+  .kp-stat-sub { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); }
+  .great { color: var(--green); } .good { color: #86efac; } .avg { color: var(--muted); } .weak { color: var(--gold); } .bad { color: var(--red); }
+  .kp-bar-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+  .kp-bar-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); width: 105px; flex-shrink: 0; }
+  .kp-bar-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .kp-bar-fill { height: 100%; border-radius: 3px; }
+  .kp-bar-fill.great { background: var(--green); } .kp-bar-fill.good { background: var(--accent2); } .kp-bar-fill.avg { background: var(--muted); } .kp-bar-fill.bad { background: var(--red); }
+  .kp-bar-val { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); width: 26px; text-align: right; flex-shrink: 0; }
+  .kp-survivor-box { background: var(--surface2); border: 1px solid var(--gold); border-radius: 7px; padding: 12px 14px; }
+  .kp-survivor-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--gold); margin-bottom: 5px; }
+  .kp-survivor-text { font-size: 12px; color: var(--text); line-height: 1.55; }
+  .kp-wp-row { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .kp-wp-row:last-child { border-bottom: none; }
+
+  /* TEAM GRID */
+  .grid-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .grid-controls {
+    padding: 14px 20px 12px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .grid-filter-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .grid-filter-btn {
+    font-family: 'DM Mono', monospace; font-size: 10px; padding: 4px 10px;
+    border-radius: 4px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.12s;
+  }
+  .grid-filter-btn:hover { border-color: var(--text); color: var(--text); }
+  .grid-filter-btn.active { background: var(--surface2); color: var(--text); border-color: var(--accent2); }
+  .grid-sort-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 9px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 10px;
+  }
+  .grid-table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); }
+  .grid-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 900px; }
+  .grid-table thead th {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted);
+    padding: 8px 10px; text-align: center; border-bottom: 2px solid var(--border);
+    background: var(--surface); white-space: nowrap;
+    position: sticky; top: 0; z-index: 5;
+    letter-spacing: 0.5px; box-shadow: 0 1px 0 var(--border);
+  }
+  .grid-table thead th.team-col { text-align: left; left: 0; z-index: 6; min-width: 130px; }
+  .grid-table tbody tr { transition: background 0.1s; }
+  .grid-table tbody tr:hover td { background: rgba(255,255,255,0.03) !important; }
+  .grid-table tbody tr.region-divider td { border-top: 2px solid var(--border); }
+  .grid-table tbody td { padding: 0; border-bottom: 1px solid rgba(37,43,56,0.6); vertical-align: middle; }
+  .grid-table tbody td.team-cell {
+    padding: 6px 10px; background: var(--surface); position: sticky; left: 0; z-index: 4;
+    border-right: 1px solid var(--border); min-width: 130px; cursor: pointer; transition: background 0.1s;
+  }
+  .grid-table tbody td.team-cell:hover { background: rgba(249,115,22,0.07) !important; }
+  .team-cell-name { font-weight: 600; font-size: 12px; color: var(--text); cursor: pointer; white-space: nowrap; }
+  .team-cell-name:hover { color: var(--accent2); text-decoration: underline; }
+  .team-cell-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 1px; }
+  .team-cell-used { opacity: 0.35; }
+  .team-cell-used .team-cell-name { text-decoration: line-through; color: var(--red); }
+
+  .round-cell { padding: 5px 4px; text-align: center; min-width: 100px; cursor: pointer; position: relative; }
+  .round-cell:hover { background: rgba(255,255,255,0.04) !important; }
+  .round-cell.eliminated { background: rgba(239,68,68,0.05) !important; }
+  .prob-pill { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 7px; border-radius: 5px; min-width: 54px; }
+  .prob-pct { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.5px; line-height: 1; }
+  .prob-opp { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); margin-top: 2px; white-space: nowrap; max-width: 68px; overflow: hidden; text-overflow: ellipsis; }
+  .prob-proj { font-family: 'DM Mono', monospace; font-size: 7px; color: var(--muted); opacity: 0.6; }
+
+  .pct-great  { color: #22c55e; }
+  .pct-good   { color: #86efac; }
+  .pct-ok     { color: var(--gold); }
+  .pct-risky  { color: var(--accent); }
+  .pct-bad    { color: var(--red); }
+  .pct-na     { color: var(--muted); }
+
+  .cell-bg-great  { background: rgba(34,197,94,0.07) !important; }
+  .cell-bg-good   { background: rgba(34,197,94,0.04) !important; }
+  .cell-bg-ok     { background: rgba(245,158,11,0.06) !important; }
+  .cell-bg-risky  { background: rgba(249,115,22,0.05) !important; }
+  .cell-bg-bad    { background: rgba(239,68,68,0.07) !important; }
+
+  .used-flag { position: absolute; top: 3px; right: 3px; font-family: 'DM Mono', monospace; font-size: 7px; color: var(--accent); opacity: 0.8; }
+  .grid-legend { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* MODALS */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 22px; max-width: 440px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; margin-bottom: 10px; }
+  .modal p { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 18px; }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn { padding: 7px 16px; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+  .results-modal { max-width: 560px; }
+  .pool-modal { max-width: 500px; }
+  .matchup-toggle { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent2); cursor: pointer; padding: 1px 6px; border-radius: 3px; border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); transition: all 0.12s; }
+  .matchup-toggle:hover { background: rgba(59,130,246,0.14); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>SURVIVOR POOL</h1>
+  <span class="htag">MARCH MADNESS 2026</span>
+  <span class="htag" style="color:var(--accent2);border-color:rgba(59,130,246,.28)">KenPom · Kalshi · Vegas</span>
+  <div class="header-right">
+    <span class="alive-count" id="alive-count">16 alive</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="openResultsModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Results
+    </button>
+    <button class="refresh-btn" style="border-color:var(--gold);background:rgba(245,158,11,0.08);color:var(--gold)" onclick="openPoolDataModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Pool Picks
+    </button>
+    <button class="refresh-btn" id="kalshi-sync-btn" onclick="syncKalshi()" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07);color:var(--green)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Sync Kalshi
+    </button>
+  </div>
+</header>
+
+<!-- ENTRY PICK SLOTS BAR -->
+<div id="entry-slots-bar" style="background:var(--surface);border-bottom:2px solid var(--border);padding:0 16px;display:flex;align-items:stretch;gap:0;overflow-x:auto;flex-shrink:0;min-height:54px"></div>
+
+<div class="app" style="display:flex;flex-direction:column;height:calc(100vh - 109px)">
+  <div id="content-area" style="flex:1;overflow:hidden;display:flex;flex-direction:column"></div>
+</div>
+
+<!-- PICK MODAL -->
+<div class="modal-overlay" id="pick-modal">
+  <div class="modal">
+    <h3 id="modal-title">Confirm Pick</h3>
+    <p id="modal-body"></p>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closePickModal()">Cancel</button>
+      <button class="btn btn-primary" id="confirm-pick-btn" onclick="confirmPick()">Confirm Pick</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS MODAL -->
+<div class="modal-overlay" id="results-modal">
+  <div class="modal results-modal">
+    <h3>🔄 Refresh Game Results</h3>
+    <div id="results-content">
+      <p style="margin-bottom:0">Fetch real results for a completed game day. AI will look up scores and flag upsets that affect your entries.</p>
+      <div style="margin:15px 0;display:flex;flex-direction:column;gap:9px">
+        <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">SELECT DAY TO REFRESH</label>
+        <select id="results-day-select" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;width:100%"></select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeResultsModal()">Cancel</button>
+      <button class="btn btn-blue" id="fetch-results-btn" onclick="fetchResults()">Fetch Results →</button>
+    </div>
+  </div>
+</div>
+
+<!-- POOL DATA MODAL -->
+<div class="modal-overlay" id="pool-modal">
+  <div class="modal" style="max-width:520px">
+    <h3 style="color:var(--gold)">👥 Update Pool Picks</h3>
+    <p>Paste in who the other 14 entries picked each day. This sharpens the chalk estimates from guesses to real data.</p>
+    <div style="margin-bottom:12px">
+      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);display:block;margin-bottom:6px">SELECT DAY</label>
+      <select id="pool-day-select" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;width:100%;margin-bottom:10px">
+        ${(() => DAYS.slice(0,8).map(d=>`<option value="${d.id}">${d.label} — ${d.round}</option>`).join(''))()}
+      </select>
+      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);display:block;margin-bottom:6px">PICKS — one per line, e.g. "Duke" or "Duke x3" for multiple</label>
+      <textarea id="pool-picks-input" placeholder="Duke&#10;Duke&#10;Arizona&#10;Michigan&#10;Kansas&#10;..." style="width:100%;height:160px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;resize:vertical;line-height:1.6"></textarea>
+    </div>
+    <div id="pool-parse-preview" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;min-height:20px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closePoolModal()">Cancel</button>
+      <button class="btn" style="background:var(--gold);color:#000;border-color:var(--gold)" onclick="savePoolPicks()">Save Pool Data</button>
+    </div>
+  </div>
+</div>
+<div class="kp-overlay" id="kp-overlay" onclick="closeKPDrawer()"></div>
+<div class="kp-drawer" id="kp-drawer">
+  <div class="kp-drawer-header">
+    <div>
+      <div class="kp-team-name" id="kp-team-name">—</div>
+      <div class="kp-team-meta" id="kp-team-meta"></div>
+      <div class="kp-seed-chip" id="kp-seed-chip"></div>
+    </div>
+    <button class="kp-close" onclick="closeKPDrawer()">✕</button>
+  </div>
+  <div class="kp-body" id="kp-body">
+    <div class="results-loading"><div class="spinner"></div><p>Loading…</p></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// KENPOM DATA (rank, adjO, adjD, adjT, oRank, dRank, record, conf, seed, region)
+// ============================================================
+const KPD = {
+  'Duke':          {r:1,  O:124.8,D:89.2, T:72.1,oR:3,  dR:1,  rec:'32-2', conf:'ACC',    seed:1, reg:'East'},
+  'Arizona':       {r:2,  O:121.5,D:90.1, T:68.4,oR:6,  dR:2,  rec:'32-2', conf:'Big 12', seed:1, reg:'West'},
+  'Illinois':      {r:3,  O:125.2,D:92.4, T:74.8,oR:1,  dR:7,  rec:'24-8', conf:'Big Ten', seed:3, reg:'South'},
+  'Houston':       {r:4,  O:119.8,D:88.7, T:65.2,oR:9,  dR:3,  rec:'28-6', conf:'Big 12', seed:2, reg:'South'},
+  'Michigan':      {r:5,  O:122.1,D:91.3, T:70.3,oR:4,  dR:5,  rec:'31-3', conf:'Big Ten', seed:1, reg:'Midwest'},
+  'UConn':         {r:6,  O:118.9,D:88.9, T:67.8,oR:11, dR:4,  rec:'29-5', conf:'Big East',seed:2, reg:'East'},
+  'Purdue':        {r:7,  O:123.4,D:93.8, T:71.2,oR:2,  dR:8,  rec:'27-8', conf:'Big Ten', seed:2, reg:'West'},
+  'Iowa State':    {r:8,  O:118.2,D:90.5, T:66.9,oR:13, dR:6,  rec:'27-7', conf:'Big 12', seed:2, reg:'Midwest'},
+  'Michigan State':{r:9,  O:117.8,D:91.7, T:69.4,oR:15, dR:9,  rec:'25-7', conf:'Big Ten', seed:3, reg:'East'},
+  'Virginia':      {r:10, O:116.4,D:90.8, T:63.2,oR:18, dR:10, rec:'29-5', conf:'ACC',    seed:3, reg:'Midwest'},
+  'Gonzaga':       {r:11, O:120.3,D:94.1, T:73.6,oR:7,  dR:12, rec:'30-3', conf:'WCC',    seed:3, reg:'West'},
+  'Vanderbilt':    {r:12, O:119.1,D:93.2, T:70.8,oR:10, dR:11, rec:'26-8', conf:'SEC',    seed:5, reg:'South'},
+  'Nebraska':      {r:13, O:117.2,D:92.6, T:68.1,oR:17, dR:13, rec:'26-6', conf:'Big Ten', seed:4, reg:'South'},
+  'Alabama':       {r:14, O:121.7,D:96.8, T:76.2,oR:5,  dR:23, rec:'23-9', conf:'SEC',    seed:4, reg:'Midwest'},
+  'Tennessee':     {r:14, O:116.8,D:90.2, T:67.4,oR:16, dR:8,  rec:'?',   conf:'SEC',    seed:6, reg:'Midwest'},
+  'Kansas':        {r:15, O:115.9,D:90.4, T:68.8,oR:20, dR:14, rec:'23-10',conf:'Big 12', seed:4, reg:'East'},
+  'Arkansas':      {r:16, O:120.8,D:96.2, T:75.1,oR:6,  dR:19, rec:'26-8', conf:'SEC',    seed:4, reg:'West'},
+  'Florida':       {r:17, O:116.1,D:91.8, T:69.2,oR:19, dR:16, rec:'26-7', conf:'SEC',    seed:1, reg:'South'},
+  'BYU':           {r:20, O:117.6,D:94.5, T:71.4,oR:14, dR:17, rec:'23-11',conf:'Big 12', seed:6, reg:'West'},
+  "Saint Mary's":  {r:24, O:114.8,D:93.1, T:64.8,oR:22, dR:18, rec:'27-5', conf:'WCC',    seed:7, reg:'South'},
+  'Wisconsin':     {r:24, O:114.2,D:95.1, T:66.8,oR:24, dR:20, rec:'?',   conf:'Big Ten', seed:5, reg:'West'},
+  "St. John's":    {r:21, O:113.8,D:91.2, T:65.4,oR:27, dR:15, rec:'28-6', conf:'Big East',seed:5, reg:'East'},
+  'North Carolina':{r:22, O:115.1,D:94.8, T:72.3,oR:21, dR:22, rec:'24-8', conf:'ACC',    seed:6, reg:'South'},
+  'Louisville':    {r:29, O:113.4,D:93.6, T:69.8,oR:28, dR:21, rec:'23-10',conf:'ACC',    seed:6, reg:'East'},
+  'Iowa':          {r:30, O:114.5,D:95.8, T:71.6,oR:23, dR:25, rec:'21-12',conf:'Big Ten', seed:9, reg:'South'},
+  'Ohio State':    {r:27, O:112.9,D:95.1, T:70.9,oR:32, dR:29, rec:'21-12',conf:'Big Ten', seed:8, reg:'East'},
+  'Texas Tech':    {r:22, O:113.6,D:93.4, T:68.6,oR:26, dR:20, rec:'22-10',conf:'Big 12', seed:5, reg:'Midwest'},
+  'Utah State':    {r:32, O:113.1,D:94.2, T:68.3,oR:30, dR:24, rec:'28-6', conf:'MWC',    seed:9, reg:'West'},
+  'Villanova':     {r:33, O:112.8,D:94.6, T:67.1,oR:31, dR:26, rec:'24-8', conf:'Big East',seed:8, reg:'West'},
+  'Georgia':       {r:35, O:112.4,D:95.4, T:70.2,oR:33, dR:28, rec:'22-10',conf:'SEC',    seed:8, reg:'Midwest'},
+  'Texas A&M':     {r:40, O:111.8,D:96.1, T:72.8,oR:35, dR:30, rec:'21-11',conf:'SEC',    seed:10, reg:'South'},
+  'Kentucky':      {r:41, O:113.2,D:96.8, T:73.4,oR:29, dR:32, rec:'21-13',conf:'SEC',    seed:7, reg:'Midwest'},
+  'Clemson':       {r:42, O:111.2,D:96.4, T:69.6,oR:37, dR:31, rec:'24-10',conf:'ACC',    seed:8, reg:'South'},
+  'TCU':           {r:39, O:110.8,D:93.8, T:68.9,oR:40, dR:23, rec:'22-11',conf:'Big 12', seed:9, reg:'East'},
+  'UCLA':          {r:38, O:111.4,D:95.6, T:70.1,oR:38, dR:27, rec:'23-11',conf:'Big Ten', seed:7, reg:'East'},
+  'Saint Louis':   {r:43, O:110.4,D:96.7, T:67.8,oR:42, dR:33, rec:'28-5', conf:'A-10',   seed:9, reg:'Midwest'},
+  'South Florida': {r:46, O:109.8,D:97.2, T:71.4,oR:44, dR:35, rec:'25-8', conf:'AAC',    seed:11, reg:'East'},
+  'VCU':           {r:47, O:110.1,D:97.8, T:72.8,oR:43, dR:36, rec:'27-7', conf:'A-10',   seed:11, reg:'South'},
+  'UCF':           {r:48, O:109.4,D:97.4, T:70.6,oR:46, dR:37, rec:'21-11',conf:'Big 12', seed:10, reg:'East'},
+  'Missouri':      {r:51, O:108.8,D:97.9, T:72.2,oR:48, dR:38, rec:'20-12',conf:'SEC',    seed:10, reg:'West'},
+  'Miami OH':      {r:50, O:109.2,D:97.6, T:72.4,oR:45, dR:38, rec:'31-1', conf:'MAC',    seed:11, reg:'Midwest'},
+  'SMU':           {r:53, O:108.2,D:98.4, T:70.4,oR:51, dR:40, rec:'20-13',conf:'ACC',    seed:11, reg:'Midwest'},
+  'Texas':         {r:53, O:108.4,D:98.2, T:71.8,oR:50, dR:39, rec:'18-14',conf:'Big 12', seed:11, reg:'West'},
+  'NC State':      {r:55, O:108.1,D:98.6, T:71.2,oR:52, dR:41, rec:'20-13',conf:'ACC',    seed:11, reg:'West'},
+  'Santa Clara':   {r:55, O:108.0,D:98.8, T:70.6,oR:53, dR:42, rec:'26-8', conf:'WCC',    seed:10, reg:'Midwest'},
+  'Northern Iowa': {r:58, O:107.8,D:98.8, T:69.2,oR:53, dR:42, rec:'23-12',conf:'MVC',    seed:12, reg:'East'},
+  'Akron':         {r:67, O:107.2,D:99.8, T:74.2,oR:58, dR:46, rec:'29-5', conf:'MAC',    seed:12, reg:'Midwest'},
+  'Miami FL':      {r:27, O:112.6,D:94.9, T:70.2,oR:33, dR:28, rec:'25-8', conf:'ACC',    seed:7, reg:'West'},
+  'North Dakota St.':{r:75,O:106.4,D:100.4,T:71.6,oR:62,dR:49, rec:'27-7', conf:'Summit', seed:14, reg:'East'},
+  'High Point':    {r:79, O:106.1,D:100.8,T:73.4,oR:64, dR:51, rec:'30-4', conf:'BSC',    seed:12, reg:'West'},
+  'McNeese':       {r:80, O:105.8,D:101.2,T:72.8,oR:66, dR:52, rec:'28-5', conf:'Southland',seed:12,reg:'South'},
+  'Hofstra':       {r:88, O:105.2,D:102.1,T:74.6,oR:70, dR:57, rec:'24-10',conf:'CAA',    seed:13, reg:'Midwest'},
+  'Hawaii':        {r:85, O:105.4,D:101.6,T:73.2,oR:68, dR:55, rec:'24-8', conf:'BWC',    seed:13, reg:'West'},
+  "Kennesaw St.":  {r:102,O:104.1,D:103.4,T:72.4,oR:78, dR:64, rec:'?',   conf:'ASUN',   seed:14, reg:'West'},
+  'Siena':         {r:105,O:103.8,D:103.8,T:70.8,oR:80, dR:66, rec:'23-11',conf:'MAAC',   seed:16, reg:'East'},
+  'Cal Baptist':   {r:98, O:104.6,D:102.8,T:73.8,oR:74, dR:61, rec:'25-8', conf:'WAC',    seed:13, reg:'East'},
+  'Troy':          {r:95, O:104.8,D:103.2,T:73.4,oR:72, dR:60, rec:'22-11',conf:'SBC',    seed:13, reg:'South'},
+  'Penn':          {r:110,O:103.4,D:104.2,T:69.8,oR:82, dR:68, rec:'18-11',conf:'Ivy',    seed:14, reg:'South'},
+};
+
+function kp(t) { return KPD[t] ? KPD[t].r : 99; }
+
+// Kalshi championship win probabilities (%) — prediction market implied odds
+// Source: Kalshi as of Selection Sunday / First Four week 2026
+// Derived from moneyline odds where direct Kalshi % not available
+const KALSHI = {
+  'Duke':          19,   // Kalshi direct: was 21%, dropped to 19% after injury concerns
+  'Arizona':       18,   // Kalshi direct: 18%
+  'Michigan':      18,   // Kalshi direct: 18%
+  'Florida':       11,   // Kalshi direct: 11%
+  'Houston':        7,   // Kalshi direct: 7%
+  'Iowa State':     5,   // +1800 → ~5.3%
+  'Illinois':       4,   // +2200 → ~4.3%
+  'Purdue':         4,   // +2500 → ~3.8%
+  'UConn':          4,   // +2500 → ~3.8%
+  'Gonzaga':        2,   // +4500 → ~2.2%
+  'Michigan State': 2,   // +4500 → ~2.2%
+  'Virginia':       2,   // +5000 → ~2.0%
+  'Vanderbilt':     2,   // +5500 → ~1.8%
+  'Nebraska':       1,   // +8000 → ~1.2%
+  'Kansas':         1,   // +4000 → ~2.4% (Darryn Peterson factor)
+  "St. John's":     1,   // +5000 → ~2.0%
+  'Arkansas':       1,   // +6000 → ~1.6%
+  'Alabama':        1,   // +5500 → ~1.8%
+  'Tennessee':      1,   // +6000 → ~1.6%
+  'BYU':            1,   // +7000 → ~1.4%
+  'Wisconsin':      1,   // +6000 → ~1.6%
+  'North Carolina': 1,   // +8000 → ~1.2%
+  'Texas Tech':     1,   // +6000 → ~1.6%
+  "Saint Mary's":   0,   // +10000 → ~1.0%
+  'Kentucky':       0,   // +8000 → ~1.2%
+  'UCLA':           0,   // +10000 → ~1.0%
+  'Miami FL':       0,
+  'Louisville':     0,
+  'Ohio State':     0,
+  'Iowa':           0,
+  'Clemson':        0,
+};
+
+// KALSHI_GAME: per-game win probability from Kalshi prediction markets
+// Keys match game IDs. Updated by syncKalshi(). Values are % for the favorite team.
+// Manually seeded with known values from screenshot (Duke 98%, etc.)
+let KALSHI_GAME = {
+  // Seeded from known Kalshi data — use Sync Kalshi to refresh live
+  'g5':  98,  // Duke vs Siena: Duke 98%
+  'g10': 99,  // Michigan vs Howard: Michigan ~99%
+  'g13': 98,  // Illinois vs Penn: Illinois ~97-98%
+  'g16': 99,  // Houston vs Idaho: Houston ~99%
+  'g19': 98,  // Arizona vs LIU: ~98%
+  'g22': 98,  // Florida vs PVAM: ~98%
+  'g21': 99,  // Iowa State vs TennSt: ~99%
+  'g31': 98,  // Purdue vs Queens: ~98%
+  'g32': 98,  // UConn vs Furman: ~98%
+  'g28': 97,  // Virginia vs Wright St: ~97%
+  'g15': 97,  // Gonzaga vs Kennesaw: ~97%
+  'g7':  95,  // Michigan State vs NDSU: ~95%
+  'g8':  94,  // Arkansas vs Hawaii: ~94%
+  'g2':  92,  // Nebraska vs Troy: ~92%
+  'g18': 84,  // Texas Tech vs Akron: ~84%
+  'g25': 88,  // Alabama vs Hofstra: ~88%
+  'g6':  84,  // Vanderbilt vs McNeese: ~84%
+  'g4':  82,  // Wisconsin vs High Point: ~82%
+  'g27': 84,  // St John's vs N Iowa: ~84%
+  'g26': 76,  // UCLA vs UCF: ~76%
+  'g20': 90,  // Kansas vs Cal Baptist: ~90%
+  'g3':  75,  // Louisville vs South Florida: ~75%
+  'g9':  61,  // North Carolina vs VCU: ~61%
+  'g1':  59,  // Ohio State vs TCU: ~59%
+  'g14': 60,  // Georgia vs Saint Louis: ~60%
+  'g11': 59,  // BYU vs Texas: ~59%
+  'g12': 61,  // Saint Mary's vs TAMU: ~61%
+  'g17': 62,  // Kentucky vs Santa Clara: ~62%
+  'g29': 59,  // Iowa vs Clemson: ~59% (Iowa favored per line)
+  'g30': 56,  // Miami FL vs Missouri: ~56%
+  'g23': 56,  // Utah State vs Villanova: ~56% (Utah St favored)
+};
+
+let kalshiLastSync = null;
+
+// Get Kalshi win% for a team in a specific game
+function getKalshiGameProb(gameId, team) {
+  const pct = KALSHI_GAME[gameId];
+  if (pct == null) return null;
+  // Find the game to determine if team is the fav
+  for (const day of DAYS) {
+    for (const g of day.games) {
+      if (g.id === gameId) {
+        const isTeamFav = g.fav === team;
+        return isTeamFav ? pct : 100 - pct;
+      }
+    }
+  }
+  return pct;
+}
+
+async function syncKalshi() {
+  const btn = document.getElementById('kalshi-sync-btn');
+  btn.classList.add('loading');
+  btn.querySelector('svg').style.animation = 'spin 0.8s linear infinite';
+
+  const gameList = [
+    ...DAYS[0].games, ...DAYS[1].games
+  ].filter(g => g.fav && !g.t2.includes('TBD'))
+   .map(g => `${g.fav} vs ${g.t1 === g.fav ? g.t2 : g.t1}`)
+   .join(', ');
+
+  const prompt = `Search Kalshi.com for the current live win probabilities for 2026 NCAA Tournament Round of 64 games. I need the Kalshi market percentage for each game's favorite team to win.
+
+Games to find: ${gameList}
+
+Search for "kalshi NCAA tournament 2026 round 64 win probability" and look for the Kalshi prediction market percentages. These are shown as cents (e.g., "98 cents" = 98%). 
+
+Return ONLY a JSON object like:
+{"Duke": 98, "Illinois": 97, "Houston": 99, "Michigan": 99, "Arizona": 98, "Florida": 98, "Iowa State": 99, "Purdue": 98, "UConn": 98, "Virginia": 97, "Gonzaga": 97, "Michigan State": 95, ...}
+
+Include every team you can find. Return only the JSON, no other text.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.replace(/```json|```/g, '').trim().match(/\{[\s\S]*\}/);
+    if (match) {
+      const probsByTeam = JSON.parse(match[0]);
+      // Map team probabilities back to game IDs
+      for (const day of [DAYS[0], DAYS[1]]) {
+        for (const g of day.games) {
+          if (g.fav && probsByTeam[g.fav] != null) {
+            KALSHI_GAME[g.id] = probsByTeam[g.fav];
+          }
+        }
+      }
+      kalshiLastSync = new Date().toLocaleTimeString();
+      // Update header button
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Kalshi ✓ ${kalshiLastSync}`;
+    }
+  } catch(e) {
+    console.error('Kalshi sync failed:', e);
+  }
+
+  btn.classList.remove('loading');
+  btn.querySelector('svg').style.animation = '';
+  clearPathCache();
+  renderContent();
+}
+// spread is from the favorite's perspective (negative = they're fav)
+function getTeamSpread(team) {
+  for (const day of DAYS) {
+    if (day.round !== 'Round of 64') continue;
+    for (const g of day.games) {
+      if (g.t1 === team || g.t2 === team) {
+        if (!g.spread) return null;
+        return {
+          fav: g.fav,
+          spread: g.spread,        // negative number = fav's line
+          isTeamFav: g.fav === team,
+          line: g.fav === team ? g.spread : -g.spread, // from this team's perspective
+          total: g.total,
+          opp: g.t1 === team ? g.t2 : g.t1,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+// Convert American moneyline to implied win probability (removes vig)
+function mlToProb(ml) {
+  if (!ml) return null;
+  const raw = ml < 0 ? (-ml / (-ml + 100)) * 100 : (100 / (ml + 100)) * 100;
+  return Math.round(raw);
+}
+
+// ============================================================
+// BRACKET
+// ============================================================
+const DAYS = [
+  { id:'mar19', label:'Thu Mar 19', short:'THU 3/19', round:'Round of 64', games:[
+    {id:'g1',  region:'East',   t1:'Ohio State',    s1:8,  t2:'TCU',            s2:9,  spread:-2.5,  fav:'Ohio State',    total:141.5, fav_ml:-148, dog_ml:124},
+    {id:'g2',  region:'South',  t1:'Nebraska',      s1:4,  t2:'Troy',           s2:13, spread:-13.5, fav:'Nebraska',      total:149.5, fav_ml:-950, dog_ml:620},
+    {id:'g3',  region:'East',   t1:'Louisville',    s1:6,  t2:'South Florida',  s2:11, spread:-6.5,  fav:'Louisville',    total:148.5, fav_ml:-310, dog_ml:250},
+    {id:'g4',  region:'West',   t1:'Wisconsin',     s1:5,  t2:'High Point',     s2:12, spread:-8.5,  fav:'Wisconsin',     total:152.5, fav_ml:-420, dog_ml:330},
+    {id:'g5',  region:'East',   t1:'Duke',          s1:1,  t2:'Siena',          s2:16, spread:-27.5, fav:'Duke',          total:136.5, fav_ml:-20000,dog_ml:3500},
+    {id:'g6',  region:'South',  t1:'Vanderbilt',    s1:5,  t2:'McNeese',        s2:12, spread:-11.5, fav:'Vanderbilt',    total:150.5, fav_ml:-700,  dog_ml:500},
+    {id:'g7',  region:'East',   t1:'Michigan State',s1:3,  t2:'North Dakota St.',s2:14,spread:-16.5, fav:'Michigan State',total:143.5, fav_ml:-1800, dog_ml:1000},
+    {id:'g8',  region:'West',   t1:'Arkansas',      s1:4,  t2:'Hawaii',         s2:13, spread:-15.5, fav:'Arkansas',      total:159.5, fav_ml:-1450, dog_ml:850},
+    {id:'g9',  region:'South',  t1:'North Carolina',s1:6,  t2:'VCU',            s2:11, spread:-2.5,  fav:'North Carolina',total:147.5, fav_ml:-148,  dog_ml:124},
+    {id:'g10', region:'Midwest',t1:'Michigan',      s1:1,  t2:'UMBC/Howard',    s2:16, spread:-31.5, fav:'Michigan',      total:151.5, fav_ml:-50000,dog_ml:4000},
+    {id:'g11', region:'West',   t1:'BYU',           s1:6,  t2:'Texas/NC State', s2:11, spread:-1.5,  fav:'BYU',           total:159.5, fav_ml:-148,  dog_ml:124},
+    {id:'g12', region:'South',  t1:"Saint Mary's",  s1:7,  t2:'Texas A&M',      s2:10, spread:-3.5,  fav:"Saint Mary's",  total:147.5, fav_ml:-162,  dog_ml:136},
+    {id:'g13', region:'South',  t1:'Illinois',      s1:3,  t2:'Penn',           s2:14, spread:-24.5, fav:'Illinois',      total:155.5, fav_ml:-5000, dog_ml:1400},
+    {id:'g14', region:'Midwest',t1:'Georgia',       s1:8,  t2:'Saint Louis',    s2:9,  spread:-2.5,  fav:'Georgia',       total:148.5, fav_ml:-148,  dog_ml:124},
+    {id:'g15', region:'West',   t1:'Gonzaga',       s1:3,  t2:'Kennesaw St.',   s2:14, spread:-20.5, fav:'Gonzaga',       total:154.5, fav_ml:-3200, dog_ml:1400},
+    {id:'g16', region:'South',  t1:'Houston',       s1:2,  t2:'Idaho',          s2:15, spread:-23.5, fav:'Houston',       total:136.5, fav_ml:-8000, dog_ml:2200},
+  ]},
+  { id:'mar20', label:'Fri Mar 20', short:'FRI 3/20', round:'Round of 64', games:[
+    {id:'g17', region:'Midwest',t1:'Kentucky',      s1:7,  t2:'Santa Clara',    s2:10, spread:-2.5,  fav:'Kentucky',      total:160.5, fav_ml:-162,  dog_ml:136},
+    {id:'g18', region:'Midwest',t1:'Texas Tech',    s1:5,  t2:'Akron',          s2:12, spread:-8.5,  fav:'Texas Tech',    total:152.5, fav_ml:-420,  dog_ml:330},
+    {id:'g19', region:'West',   t1:'Arizona',       s1:1,  t2:'LIU',            s2:16, spread:-29.5, fav:'Arizona',       total:155.5, fav_ml:-15000,dog_ml:2800},
+    {id:'g20', region:'East',   t1:'Kansas',        s1:4,  t2:'Cal Baptist',    s2:13, spread:-13.5, fav:'Kansas',        total:152.5, fav_ml:-950,  dog_ml:620},
+    {id:'g21', region:'Midwest',t1:'Iowa State',    s1:2,  t2:'Tennessee St.',  s2:15, spread:-23.5, fav:'Iowa State',    total:144.5, fav_ml:-8000, dog_ml:2500},
+    {id:'g22', region:'South',  t1:'Florida',       s1:1,  t2:'PVAM/Lehigh',    s2:16, spread:-28.5, fav:'Florida',       total:148.5, fav_ml:-10000,dog_ml:2500},
+    {id:'g23', region:'West',   t1:'Villanova',     s1:8,  t2:'Utah State',     s2:9,  spread:1.5,   fav:'Utah State',    total:152.5, fav_ml:-128,  dog_ml:108},
+    {id:'g24', region:'Midwest',t1:'Tennessee',     s1:6,  t2:'SMU/Miami OH',   s2:11, spread:null,  fav:null,            total:null,  fav_ml:null,  dog_ml:null},
+    {id:'g25', region:'Midwest',t1:'Alabama',       s1:4,  t2:'Hofstra',        s2:13, spread:-11.5, fav:'Alabama',       total:157.5, fav_ml:-700,  dog_ml:500},
+    {id:'g26', region:'East',   t1:'UCLA',          s1:7,  t2:'UCF',            s2:10, spread:-5.5,  fav:'UCLA',          total:148.5, fav_ml:-280,  dog_ml:230},
+    {id:'g27', region:'East',   t1:"St. John's",    s1:5,  t2:'Northern Iowa',  s2:12, spread:-11.5, fav:"St. John's",    total:132.5, fav_ml:-580,  dog_ml:450},
+    {id:'g28', region:'Midwest',t1:'Virginia',      s1:3,  t2:'Wright St.',     s2:14, spread:-17.5, fav:'Virginia',      total:130.5, fav_ml:-2000, dog_ml:1100},
+    {id:'g29', region:'South',  t1:'Clemson',       s1:8,  t2:'Iowa',           s2:9,  spread:2.5,   fav:'Iowa',          total:144.5, fav_ml:-148,  dog_ml:124},
+    {id:'g30', region:'West',   t1:'Miami FL',      s1:7,  t2:'Missouri',       s2:10, spread:-1.5,  fav:'Miami FL',      total:151.5, fav_ml:-128,  dog_ml:108},
+    {id:'g31', region:'West',   t1:'Purdue',        s1:2,  t2:'Queens',         s2:15, spread:-24.5, fav:'Purdue',        total:148.5, fav_ml:-8000, dog_ml:2200},
+    {id:'g32', region:'East',   t1:'UConn',         s1:2,  t2:'Furman',         s2:15, spread:-20.5, fav:'UConn',         total:142.5, fav_ml:-4000, dog_ml:1200},
+  ]},
+  { id:'mar21', label:'Sat Mar 21', short:'SAT 3/21', round:'Round of 32', games:[
+    {id:'g17', region:'East',   t1:'Duke',              s1:1,    t2:'Ohio State/TCU',   s2:'8/9'},
+    {id:'g18', region:'East',   t1:"St. John's/N. Iowa",s1:'5/12',t2:'Kansas/Cal Bap',  s2:'4/13'},
+    {id:'g19', region:'East',   t1:'Louisville',        s1:6,    t2:'South Florida',    s2:11},
+    {id:'g20', region:'East',   t1:'Michigan State',    s1:3,    t2:'N. Dakota St.',    s2:14},
+    {id:'g21', region:'West',   t1:'Arizona',           s1:1,    t2:'Villanova/Utah St',s2:'8/9'},
+    {id:'g22', region:'West',   t1:'Wisconsin/Hi Pt',   s1:'5/12',t2:'Arkansas/Hawaii', s2:'4/13'},
+    {id:'g23', region:'West',   t1:'BYU',               s1:6,    t2:'TX/NC State',      s2:11},
+    {id:'g24', region:'West',   t1:'Gonzaga',           s1:3,    t2:'Kennesaw St.',     s2:14},
+  ]},
+  { id:'mar22', label:'Sun Mar 22', short:'SUN 3/22', round:'Round of 32', games:[
+    {id:'g25', region:'Midwest',t1:'Michigan',            s1:1,    t2:'Georgia/St. Louis',s2:'8/9'},
+    {id:'g26', region:'Midwest',t1:'Tex Tech/Akron',      s1:'5/12',t2:'Alabama/Hofstra', s2:'4/13'},
+    {id:'g27', region:'Midwest',t1:'Tennessee',            s1:6,    t2:'SMU/Miami OH',     s2:11},
+    {id:'g28', region:'Midwest',t1:'Virginia',             s1:3,    t2:'Wright St.',        s2:14},
+    {id:'g29', region:'South',  t1:'Florida',              s1:1,    t2:'Clemson/Iowa',      s2:'8/9'},
+    {id:'g30', region:'South',  t1:'Vanderbilt/McNeese',  s1:'5/12',t2:'Nebraska/Troy',    s2:'4/13'},
+    {id:'g31', region:'South',  t1:'North Carolina',       s1:6,    t2:'VCU',               s2:11},
+    {id:'g32', region:'South',  t1:'Illinois',             s1:3,    t2:'Penn',               s2:14},
+  ]},
+  { id:'mar26', label:'Thu Mar 26', short:'THU 3/26', round:'Sweet 16', games:[
+    {id:'g33', region:'East',  t1:'Duke',         s1:1, t2:'TBD (E)',  s2:'?'},
+    {id:'g34', region:'East',  t1:'Michigan State',s1:3,t2:'TBD (E)',  s2:'?'},
+    {id:'g35', region:'West',  t1:'Arizona',      s1:1, t2:'TBD (W)',  s2:'?'},
+    {id:'g36', region:'West',  t1:'Gonzaga',      s1:3, t2:'TBD (W)',  s2:'?'},
+  ]},
+  { id:'mar27', label:'Fri Mar 27', short:'FRI 3/27', round:'Sweet 16', games:[
+    {id:'g37', region:'Midwest',t1:'Michigan',   s1:1, t2:'TBD (MW)', s2:'?'},
+    {id:'g38', region:'Midwest',t1:'Iowa State', s1:2, t2:'TBD (MW)', s2:'?'},
+    {id:'g39', region:'South', t1:'Florida',     s1:1, t2:'TBD (S)',  s2:'?'},
+    {id:'g40', region:'South', t1:'Houston',     s1:2, t2:'TBD (S)',  s2:'?'},
+  ]},
+  { id:'mar28', label:'Sat Mar 28', short:'SAT 3/28', round:'Elite 8', games:[
+    {id:'g41', region:'East', t1:'Duke',    s1:1, t2:'TBD (E)', s2:'?'},
+    {id:'g42', region:'West', t1:'Arizona', s1:1, t2:'TBD (W)', s2:'?'},
+  ]},
+  { id:'mar29', label:'Sun Mar 29', short:'SUN 3/29', round:'Elite 8', games:[
+    {id:'g43', region:'Midwest',t1:'Michigan',s1:1, t2:'TBD (MW)',s2:'?'},
+    {id:'g44', region:'South', t1:'Houston', s1:2, t2:'TBD (S)', s2:'?'},
+  ]},
+  { id:'apr4', label:'Sat Apr 4', short:'SAT 4/4', round:'Final Four', games:[
+    {id:'g45', region:'Final Four',t1:'TBD (E/W)',s1:'?',t2:'TBD (MW/S)',s2:'?'},
+    {id:'g46', region:'Final Four',t1:'TBD (E/W)',s1:'?',t2:'TBD (MW/S)',s2:'?'},
+  ]},
+  { id:'apr6', label:'Mon Apr 6', short:'MON 4/6', round:'Championship', games:[
+    {id:'g47', region:'Championship',t1:'TBD',s1:'?',t2:'TBD',s2:'?'},
+  ]},
+];
+
+let gameResults = {};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function winProb(t1, t2) {
+  const d = kp(t2) - kp(t1);
+  if (d > 80) return 97; if (d > 50) return 93; if (d > 30) return 88;
+  if (d > 20) return 82; if (d > 12) return 76; if (d > 8)  return 70;
+  if (d > 4)  return 65; if (d > 0)  return 58; if (d > -4) return 48;
+  if (d > -8) return 40; if (d > -15)return 33; return 25;
+}
+function fv(t) { const r=kp(t); if(r<=3)return'ELITE — SAVE'; if(r<=8)return'HIGH'; if(r<=18)return'MED'; if(r<=35)return'LOW'; return'BURN'; }
+function fvCls(t) { const r=kp(t); if(r<=3)return'elite'; if(r<=8)return'high'; if(r<=18)return'mid'; return'ok'; }
+function rCls(r) { if(r<=5)return'great'; if(r<=15)return'good'; if(r<=35)return'avg'; if(r<=60)return'weak'; return'bad'; }
+function bCls(r) { if(r<=10)return'great'; if(r<=25)return'good'; if(r<=60)return'avg'; return'bad'; }
+function bW(r, mx=80) { return Math.max(4, Math.round((1-(r-1)/mx)*100)); }
+
+function getFav(g) {
+  if (!g.t2 || g.t2.includes('TBD') || g.t2.includes('/')) return g.t1;
+  if (g.t1.includes('TBD') || g.t1.includes('/')) return null;
+  return kp(g.t1) <= kp(g.t2) ? g.t1 : g.t2;
+}
+function getDog(g) { const f=getFav(g); if(!f)return null; return f===g.t1?g.t2:g.t1; }
+function getFavProb(g) {
+  const f=getFav(g), d=getDog(g);
+  if(!f||!d)return 70;
+  if(d.includes('TBD')||d.includes('/'))return 80;
+  return winProb(f,d);
+}
+
+// ============================================================
+// BRACKET SIMULATOR
+// Traces the most likely survivor from each region through
+// every round, producing a full projected schedule of real
+// team names for ALL 10 days including Final Four & Championship.
+// Returns: dayId -> [{ team, prob, opp, region, isProjected }]
+// ============================================================
+
+// Region brackets — accurate pod structure from 2026 bracket
+// r64_day is now a MAP of team->dayId since games are mixed Thu/Fri
+const BRACKET = {
+  East: {
+    r64_day: 'mar19', r32_day: 'mar21', s16_day: 'mar26', e8_day: 'mar28',
+    // Thu 3/19: Ohio State/TCU, Louisville/SFL, Duke/Siena, MSU/NDSU
+    // Fri 3/20: Kansas/Cal Bap, UCLA/UCF, St John's/N Iowa, UConn/Furman
+    r64_days: {
+      'Duke':'mar19','Siena':'mar19','Ohio State':'mar19','TCU':'mar19',
+      'Louisville':'mar19','South Florida':'mar19','Michigan State':'mar19','North Dakota St.':'mar19',
+      'Kansas':'mar20','Cal Baptist':'mar20','UCLA':'mar20','UCF':'mar20',
+      "St. John's":'mar20','Northern Iowa':'mar20','UConn':'mar20','Furman':'mar20',
+    },
+    q1: [
+      { high: 'Duke',        low: 'Siena',        s_high: 1,  s_low: 16 },
+      { high: 'Ohio State',  low: 'TCU',           s_high: 8,  s_low: 9  },
+      { high: "St. John's",  low: 'Northern Iowa', s_high: 5,  s_low: 12 },
+      { high: 'Kansas',      low: 'Cal Baptist',   s_high: 4,  s_low: 13 },
+    ],
+    q2: [
+      { high: 'Louisville',     low: 'South Florida',    s_high: 6, s_low: 11 },
+      { high: 'Michigan State', low: 'North Dakota St.',  s_high: 3, s_low: 14 },
+      { high: 'UCLA',           low: 'UCF',               s_high: 7, s_low: 10 },
+      { high: 'UConn',          low: 'Furman',            s_high: 2, s_low: 15 },
+    ],
+  },
+  West: {
+    r64_day: 'mar19', r32_day: 'mar21', s16_day: 'mar26', e8_day: 'mar28',
+    // Thu 3/19: Wisconsin/HP, Arkansas/Hawaii, BYU/TX-NCST, Gonzaga/Kennesaw
+    // Fri 3/20: Arizona/LIU, Villanova/Utah St, Miami FL/Missouri, Purdue/Queens
+    r64_days: {
+      'Wisconsin':'mar19','High Point':'mar19','Arkansas':'mar19','Hawaii':'mar19',
+      'BYU':'mar19','Texas/NC State':'mar19','Gonzaga':'mar19','Kennesaw St.':'mar19',
+      'Arizona':'mar20','LIU':'mar20','Villanova':'mar20','Utah State':'mar20',
+      'Miami FL':'mar20','Missouri':'mar20','Purdue':'mar20','Queens':'mar20',
+    },
+    q1: [
+      { high: 'Arizona',   low: 'LIU',          s_high: 1, s_low: 16 },
+      { high: 'Villanova', low: 'Utah State',   s_high: 8, s_low: 9  },
+      { high: 'Wisconsin', low: 'High Point',   s_high: 5, s_low: 12 },
+      { high: 'Arkansas',  low: 'Hawaii',       s_high: 4, s_low: 13 },
+    ],
+    q2: [
+      { high: 'BYU',     low: 'Texas/NC State', s_high: 6, s_low: 11 },
+      { high: 'Gonzaga', low: 'Kennesaw St.',   s_high: 3, s_low: 14 },
+      { high: 'Miami FL',low: 'Missouri',       s_high: 7, s_low: 10 },
+      { high: 'Purdue',  low: 'Queens',         s_high: 2, s_low: 15 },
+    ],
+  },
+  Midwest: {
+    r64_day: 'mar19', r32_day: 'mar22', s16_day: 'mar27', e8_day: 'mar29',
+    // Thu 3/19: Michigan/UMBC, Georgia/St Louis
+    // Fri 3/20: Kentucky/Santa Clara, Texas Tech/Akron, Iowa State/Tenn St, Tennessee/SMU-MiamiOH, Alabama/Hofstra, Virginia/Wright St
+    r64_days: {
+      'Michigan':'mar19','UMBC/Howard':'mar19','Georgia':'mar19','Saint Louis':'mar19',
+      'Kentucky':'mar20','Santa Clara':'mar20','Texas Tech':'mar20','Akron':'mar20',
+      'Iowa State':'mar20','Tennessee St.':'mar20','Tennessee':'mar20','SMU/Miami OH':'mar20',
+      'Alabama':'mar20','Hofstra':'mar20','Virginia':'mar20','Wright St.':'mar20',
+    },
+    q1: [
+      { high: 'Michigan',   low: 'UMBC/Howard',  s_high: 1, s_low: 16 },
+      { high: 'Georgia',    low: 'Saint Louis',   s_high: 8, s_low: 9  },
+      { high: 'Texas Tech', low: 'Akron',         s_high: 5, s_low: 12 },
+      { high: 'Alabama',    low: 'Hofstra',       s_high: 4, s_low: 13 },
+    ],
+    q2: [
+      { high: 'Tennessee', low: 'SMU/Miami OH',   s_high: 6, s_low: 11 },
+      { high: 'Virginia',  low: 'Wright St.',     s_high: 3, s_low: 14 },
+      { high: 'Kentucky',  low: 'Santa Clara',    s_high: 7, s_low: 10 },
+      { high: 'Iowa State',low: 'Tennessee St.',  s_high: 2, s_low: 15 },
+    ],
+  },
+  South: {
+    r64_day: 'mar19', r32_day: 'mar22', s16_day: 'mar27', e8_day: 'mar29',
+    // Thu 3/19: Nebraska/Troy, Vanderbilt/McNeese, NC/VCU, Saint Mary's/TAMU, Illinois/Penn, Houston/Idaho
+    // Fri 3/20: Florida/PVAM, Clemson/Iowa
+    r64_days: {
+      'Nebraska':'mar19','Troy':'mar19','Vanderbilt':'mar19','McNeese':'mar19',
+      'North Carolina':'mar19','VCU':'mar19',"Saint Mary's":'mar19','Texas A&M':'mar19',
+      'Illinois':'mar19','Penn':'mar19','Houston':'mar19','Idaho':'mar19',
+      'Florida':'mar20','PVAM/Lehigh':'mar20','Clemson':'mar20','Iowa':'mar20',
+    },
+    q1: [
+      { high: 'Florida',    low: 'PVAM/Lehigh',  s_high: 1, s_low: 16 },
+      { high: 'Clemson',    low: 'Iowa',         s_high: 8, s_low: 9  },
+      { high: 'Vanderbilt', low: 'McNeese',      s_high: 5, s_low: 12 },
+      { high: 'Nebraska',   low: 'Troy',         s_high: 4, s_low: 13 },
+    ],
+    q2: [
+      { high: 'North Carolina', low: 'VCU',       s_high: 6, s_low: 11 },
+      { high: 'Illinois',       low: 'Penn',      s_high: 3, s_low: 14 },
+      { high: "Saint Mary's",   low: 'Texas A&M', s_high: 7, s_low: 10 },
+      { high: 'Houston',        low: 'Idaho',     s_high: 2, s_low: 15 },
+    ],
+  },
+};
+
+// Flatten all teams from a region into top half (q1) and bottom half (q2)
+function getHalfTeams(region, quadrant) {
+  const info = BRACKET[region];
+  if (!info) return [];
+  const q = info[quadrant];
+  return q.flatMap(m => [m.high, m.low]).filter(t => !t.includes('/'));
+}
+
+// Find a team's pod matchup (their actual R64 opponent)
+function findPodMatchup(team) {
+  for (const [region, info] of Object.entries(BRACKET)) {
+    for (const q of ['q1', 'q2']) {
+      for (const match of info[q]) {
+        if (match.high === team) return { opp: match.low,  region, q, seed: match.s_high, oppSeed: match.s_low };
+        if (match.low  === team) return { opp: match.high, region, q, seed: match.s_low,  oppSeed: match.s_high };
+        // Handle slash entries (First Four teams)
+        if (match.low.includes('/') && !match.high.includes('/')) {
+          if (match.high === team) return { opp: match.low, region, q, seed: match.s_high, oppSeed: match.s_low };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// For each round, pick the best KenPom team from a pool (simulate bracket)
+function simBest(teams) {
+  const valid = teams.filter(t => t && KPD[t] && !t.includes('/'));
+  if (!valid.length) return teams.find(t => t && !t.includes('/')) || null;
+  return valid.sort((a, b) => kp(a) - kp(b))[0];
+}
+
+// Projected winner of a pod matchup
+function podWinner(match) {
+  const h = match.high, l = match.low;
+  if (l.includes('/')) return h; // First Four team — favor the named high seed
+  const hKp = KPD[h] ? kp(h) : 50;
+  const lKp = KPD[l] ? kp(l) : 100;
+  return hKp <= lKp ? h : l;
+}
+
+// Build projected survivors for each region at each round
+function projectBracket() {
+  const proj = {};
+  for (const [region, info] of Object.entries(BRACKET)) {
+    // Q1: pods 0+1 feed one R32 game; pods 2+3 feed another R32 game
+    const q1Winners = info.q1.map(podWinner);
+    const q2Winners = info.q2.map(podWinner);
+
+    // R32 winners: winner of pod0 vs pod1, winner of pod2 vs pod3
+    const q1r32a = simBest([q1Winners[0], q1Winners[1]]); // e.g. Duke vs Ohio State winner
+    const q1r32b = simBest([q1Winners[2], q1Winners[3]]); // e.g. St John's vs Kansas winner
+    const q2r32a = simBest([q2Winners[0], q2Winners[1]]);
+    const q2r32b = simBest([q2Winners[2], q2Winners[3]]);
+
+    // S16: q1 R32 winners meet; q2 R32 winners meet
+    const s16q1 = simBest([q1r32a, q1r32b].filter(Boolean));
+    const s16q2 = simBest([q2r32a, q2r32b].filter(Boolean));
+
+    // E8: S16 winners from q1 vs q2
+    const e8 = simBest([s16q1, s16q2].filter(Boolean));
+
+    proj[region] = { q1Winners, q2Winners, q1r32a, q1r32b, q2r32a, q2r32b, s16q1, s16q2, e8 };
+  }
+  return proj;
+}
+
+// Get region and quadrant for a team
+function getTeamRegion(team) {
+  if (KPD[team]) return KPD[team].reg;
+  for (const [region, info] of Object.entries(BRACKET)) {
+    for (const q of ['q1','q2']) {
+      for (const m of info[q]) {
+        if (m.high === team || m.low === team || m.low.includes(team)) return region;
+      }
+    }
+  }
+  return null;
+}
+
+function getTeamQuadrant(team) {
+  for (const [, info] of Object.entries(BRACKET)) {
+    for (const q of ['q1','q2']) {
+      for (const m of info[q]) {
+        if (m.high === team || m.low === team) return q;
+      }
+    }
+  }
+  return 'q1';
+}
+
+// Get pod index within quadrant (0-3)
+function getTeamPodIndex(team) {
+  for (const [, info] of Object.entries(BRACKET)) {
+    for (const q of ['q1','q2']) {
+      for (let i = 0; i < info[q].length; i++) {
+        const m = info[q][i];
+        if (m.high === team || m.low === team) return i;
+      }
+    }
+  }
+  return 0;
+}
+
+// Build the full schedule of (team, prob, round) for every day
+// incorporating actual game results where known, projections elsewhere
+function buildProjectedSchedule() {
+  const proj = projectBracket();
+
+  // Map: dayId -> array of { team, prob, opp, region, isProjected, note }
+  const schedule = {};
+
+  // R64 — real games
+  for (const day of DAYS.filter(d => d.round === 'Round of 64')) {
+    schedule[day.id] = [];
+    for (const g of day.games) {
+      const f = getFav(g), d = getDog(g);
+      if (!f || f.includes('TBD')) continue;
+      const p = getFavProb(g);
+      const res = gameResults[g.id];
+      schedule[day.id].push({
+        team: res ? res.winner : f,
+        prob: res ? 100 : p,
+        opp:  res ? res.loser : (d||''),
+        region: g.region,
+        isProjected: !res,
+        gameId: g.id,
+      });
+    }
+  }
+
+  // R32 — real games where named, projected for TBD slots
+  for (const day of DAYS.filter(d => d.round === 'Round of 32')) {
+    schedule[day.id] = [];
+    for (const g of day.games) {
+      const f = getFav(g);
+      if (!f || f.includes('TBD') || f.includes('/')) continue;
+      const d2 = getDog(g), p = getFavProb(g);
+      const res = gameResults[g.id];
+      schedule[day.id].push({
+        team: res ? res.winner : f, prob: res ? 100 : p,
+        opp: res ? res.loser : (d2||''), region: g.region, isProjected: !res, gameId: g.id,
+      });
+    }
+    // Add projected R32 winners for each region playing this day (using pod projections)
+    for (const [region, info] of Object.entries(BRACKET)) {
+      if (info.r32_day !== day.id) continue;
+      const rp = proj[region];
+      // Add q1 R32 winners
+      for (const t of [rp.q1r32a, rp.q1r32b, rp.q2r32a, rp.q2r32b].filter(Boolean)) {
+        if (!schedule[day.id].find(s => s.team === t)) {
+          schedule[day.id].push({ team: t, prob: 76, opp: 'Projected opponent', region, isProjected: true });
+        }
+      }
+    }
+  }
+
+  // Sweet 16 — project using pod-accurate S16 winners
+  for (const day of DAYS.filter(d => d.round === 'Sweet 16')) {
+    schedule[day.id] = [];
+    for (const g of day.games) {
+      const f = getFav(g);
+      const isReal = f && !f.includes('TBD');
+      const res = gameResults[g.id];
+      if (isReal) {
+        schedule[day.id].push({
+          team: res ? res.winner : f, prob: res ? 100 : getFavProb(g),
+          opp: res ? res.loser : 'TBD', region: g.region, isProjected: !res, gameId: g.id,
+        });
+      }
+    }
+    // Ensure all regions playing this day have a projected entry
+    for (const [region, info] of Object.entries(BRACKET)) {
+      if (info.s16_day !== day.id) continue;
+      const rp = proj[region];
+      for (const t of [rp.s16q1, rp.s16q2].filter(Boolean)) {
+        if (!schedule[day.id].find(s => s.team === t)) {
+          schedule[day.id].push({ team: t, prob: 70, opp: 'Projected opponent', region, isProjected: true });
+        }
+      }
+    }
+  }
+
+  // Elite 8 — project region E8 winners
+  for (const day of DAYS.filter(d => d.round === 'Elite 8')) {
+    schedule[day.id] = [];
+    for (const [region, info] of Object.entries(BRACKET)) {
+      if (info.e8_day !== day.id) continue;
+      const t = proj[region]?.e8;
+      if (t) schedule[day.id].push({ team: t, prob: 60, opp: 'Projected opponent', region, isProjected: true });
+    }
+  }
+
+  // Final Four — best from each semifinal pairing
+  const ff_ew = simBest([proj.East?.e8, proj.West?.e8].filter(Boolean));
+  const ff_ms = simBest([proj.Midwest?.e8, proj.South?.e8].filter(Boolean));
+  const ffOther_ew = [proj.East?.e8, proj.West?.e8].filter(t => t && t !== ff_ew)[0] || 'Projected';
+  const ffOther_ms = [proj.Midwest?.e8, proj.South?.e8].filter(t => t && t !== ff_ms)[0] || 'Projected';
+  schedule['apr4'] = [
+    { team: ff_ew, prob: 55, opp: ffOther_ew, region: 'East/West', isProjected: true },
+    { team: ff_ms, prob: 55, opp: ffOther_ms, region: 'Midwest/South', isProjected: true },
+  ].filter(s => s.team);
+
+  // Championship
+  const champ = simBest([ff_ew, ff_ms].filter(Boolean));
+  const champOpp = [ff_ew, ff_ms].filter(t => t && t !== champ)[0] || 'Projected';
+  schedule['apr6'] = champ
+    ? [{ team: champ, prob: 50, opp: champOpp, region: 'Championship', isProjected: true }]
+    : [];
+
+  return schedule;
+}
+
+// ---------------------------------------------------------------
+// FULL PATH PLANNER — solves all 10 days simultaneously.
+// Uses projected schedule so Final Four/Championship have real names.
+// ---------------------------------------------------------------
+function buildFullPath(entry) {
+  const locked = { ...entry.picks };
+  const confirmedUsed = new Set(Object.values(locked));
+  const projSchedule = buildProjectedSchedule();
+
+  // Build pool per day using projected schedule (all real team names)
+  const pool = {};
+  for (const day of DAYS) {
+    if (locked[day.id]) continue;
+    const slots = projSchedule[day.id] || [];
+    const cands = slots
+      .filter(s => s.team && !confirmedUsed.has(s.team))
+      .map(s => ({ f: s.team, p: s.prob, kr: kp(s.team), region: s.region, isProjected: s.isProjected }));
+    // dedupe by team name
+    const seen = new Set();
+    pool[day.id] = cands.filter(c => { if(seen.has(c.f))return false; seen.add(c.f); return true; });
+  }
+
+  const roundPriority = {
+    'Championship':0,'Final Four':1,'Elite 8':2,'Sweet 16':3,'Round of 32':4,'Round of 64':5
+  };
+  const futureDays = DAYS.filter(d => !locked[d.id]);
+  const orderedDays = [...futureDays].sort((a,b) => (roundPriority[a.round]??6)-(roundPriority[b.round]??6));
+
+  const assignment = {};
+  const assignedTeams = new Set(confirmedUsed);
+
+  for (const day of orderedDays) {
+    const cands = (pool[day.id] || []).filter(c => !assignedTeams.has(c.f));
+    if (!cands.length) { assignment[day.id] = null; continue; }
+
+    const isLate = ['Sweet 16','Elite 8','Final Four','Championship'].includes(day.round);
+    let pick;
+    if (isLate) {
+      pick = cands.sort((a,b) => b.p - a.p)[0];
+    } else {
+      const nonElite = cands.filter(c => c.kr > 8);
+      const source = nonElite.length ? nonElite : cands;
+      pick = source.sort((a,b) => b.p - a.p)[0];
+    }
+    assignment[day.id] = pick;
+    assignedTeams.add(pick.f);
+  }
+
+  // Build final result map
+  const result = {};
+  for (const day of DAYS) {
+    if (locked[day.id]) {
+      const t = locked[day.id];
+      result[day.id] = { f:t, p:null, kr:kp(t), locked:true, lost:!!entry.lostPicks[day.id], isProjected:false };
+    } else if (assignment[day.id]) {
+      const a = assignment[day.id];
+      result[day.id] = { f:a.f, p:a.p, kr:a.kr, locked:false, isProjected:a.isProjected };
+    } else {
+      result[day.id] = null;
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------
+// STRATEGY NOTES — rich, direct analysis per pick
+// ---------------------------------------------------------------
+
+// What was the best available team on a given day for this entry?
+// ============================================================
+// POOL PICK DATA — update this as real picks come in
+// Format: { dayId: { teamName: count } }
+// Represents how many of the OTHER pool entries picked each team
+// ============================================================
+let POOL_PICKS = {
+  // Example once data comes in:
+  // 'mar19': { 'Duke': 8, 'Kansas': 4, 'Arizona': 3 }
+};
+
+// Update pool picks from uploaded data
+function updatePoolPicks(data) {
+  POOL_PICKS = { ...POOL_PICKS, ...data };
+  render();
+}
+
+// Pool size (other entries, not yours)
+const POOL_SIZE = 14; // 15 total minus you
+
+// ============================================================
+// CHALK MODEL — estimate what % of the pool will pick each team
+// Based on seed, KenPom rank, name recognition, and matchup ease
+// Higher = more people pick this = more reason to differentiate
+// ============================================================
+function estimateChalkPct(team, dayId) {
+  // Use real data if available
+  if (POOL_PICKS[dayId] && POOL_PICKS[dayId][team] !== undefined) {
+    return Math.round((POOL_PICKS[dayId][team] / POOL_SIZE) * 100);
+  }
+
+  const day = DAYS.find(d => d.id === dayId);
+  const kr = kp(team);
+  const kpd = KPD[team];
+  const seed = kpd?.seed || 8;
+
+  // 1-seeds in Round of 64 — everyone picks them
+  if (seed === 1 && day?.round === 'Round of 64') return 85;
+  if (seed === 1 && day?.round === 'Round of 32') return 75;
+  if (seed === 1) return 65;
+
+  // 2-seeds
+  if (seed === 2 && day?.round === 'Round of 64') return 70;
+  if (seed === 2) return 55;
+
+  // KenPom tier
+  if (kr <= 3)  return day?.round === 'Round of 64' ? 75 : 60;
+  if (kr <= 8)  return day?.round === 'Round of 64' ? 55 : 45;
+  if (kr <= 15) return 35;
+  if (kr <= 25) return 20;
+  return 10;
+}
+
+// Is this a chalk pick (pool will converge on it)?
+function isChalk(team, dayId) {
+  return estimateChalkPct(team, dayId) >= 50;
+}
+
+// ============================================================
+// ROUND TIERS — what KenPom rank is appropriate for each round
+// This is the core logic: you should be using BETTER teams in
+// LATER rounds, not worse ones. Elite teams are currency.
+// ============================================================
+const ROUND_KP_TARGET = {
+  'Round of 64':   { min: 10, ideal: 18, max: 40 },  // burn mid-tier here
+  'Round of 32':   { min: 8,  ideal: 14, max: 30 },
+  'Sweet 16':      { min: 4,  ideal: 10, max: 20 },
+  'Elite 8':       { min: 2,  ideal: 6,  max: 12 },
+  'Final Four':    { min: 1,  ideal: 3,  max: 8  },
+  'Championship':  { min: 1,  ideal: 2,  max: 5  },
+};
+
+// ============================================================
+// MAIN STRATEGY NOTE BUILDER
+// ============================================================
+function getStrategyNote(team, dayId, isLocked, isProjected, entry) {
+  if (isLocked) return getLockedPickNote(team, dayId, entry);
+
+  const day = DAYS.find(d => d.id === dayId);
+  const round = day?.round || '';
+  const kr = kp(team);
+  const kpd = KPD[team];
+  const roundIdx = ['Round of 64','Round of 32','Sweet 16','Elite 8','Final Four','Championship'].indexOf(round);
+  const target = ROUND_KP_TARGET[round] || { min:1, ideal:8, max:20 };
+  const chalkPct = estimateChalkPct(team, dayId);
+  const chalk = chalkPct >= 50;
+  const projSuffix = isProjected ? ' Projected to reach this round.' : '';
+
+  // ---- CORRECTNESS CHECK: is the KenPom rank right for this round? ----
+  const tooPrecious = kr < target.min;         // e.g. KP#1 in Round of 64
+  const slightlyExpensive = kr < target.ideal && kr >= target.min; // KP#5 in Round of 64
+  const rightTier = kr >= target.ideal && kr <= target.max;
+  const marginal = kr > target.max;
+
+  let qualityNote = '';
+  if (tooPrecious) {
+    // This should NOT be recommended — the planner should avoid this, but if forced:
+    qualityNote = `❌ Too valuable to use here. ${team} is KP#${kr} — a Championship-caliber team. You want this name available in the ${round==='Round of 64'?'Sweet 16/Elite 8':round==='Round of 32'?'Sweet 16':'Final Four'}. Only acceptable if every better option is already burned.`;
+  } else if (slightlyExpensive) {
+    qualityNote = `⚠️ Slightly early for ${team} (KP#${kr}). Ideal for the ${round==='Round of 64'?'Round of 32 or Sweet 16':round==='Round of 32'?'Sweet 16':round}. Usable here if your remaining pool has even better teams saved for later rounds.`;
+  } else if (rightTier) {
+    qualityNote = `✅ Right caliber for the ${round}. ${team} (KP#${kr})${kpd ? ` — ${kpd.O.toFixed(1)} AdjO / ${kpd.D.toFixed(1)} AdjD` : ''}. Win probability is real, not burning an elite team.${projSuffix}`;
+  } else {
+    qualityNote = `⚠️ Lower-tier pick for the ${round}. ${team} (KP#${kr}) — their metrics don't inspire confidence this deep. Survivable, but there's meaningful upset risk.${projSuffix}`;
+  }
+
+  // ---- POOL CONTRARIAN NOTE ----
+  let poolNote = '';
+  if (POOL_PICKS[dayId]) {
+    // Real data available
+    const realPct = estimateChalkPct(team, dayId);
+    if (realPct >= 60) {
+      poolNote = ` 🔴 Pool chalk — ~${realPct}% of the pool picked this. If they lose you're not alone, but you get no edge.`;
+    } else if (realPct <= 20) {
+      poolNote = ` 🟢 Contrarian — only ~${realPct}% of the pool picked this. Win and you separate yourself.`;
+    } else {
+      poolNote = ` Pool pick rate: ~${realPct}%.`;
+    }
+  } else {
+    // Estimated chalk
+    if (chalkPct >= 75) {
+      poolNote = ` 🔴 Heavy chalk — estimated ${chalkPct}% of the pool picks this. Everyone sees it. No differentiation value.`;
+    } else if (chalkPct >= 50) {
+      poolNote = ` 🟡 Popular pick — est. ${chalkPct}% of the pool goes here. Safe but not contrarian.`;
+    } else if (chalkPct <= 20) {
+      poolNote = ` 🟢 Contrarian value — only est. ${chalkPct}% of the pool picks this. Win and you gain real ground on the field.`;
+    } else {
+      poolNote = ` Est. ${chalkPct}% pool pick rate — moderate chalk.`;
+    }
+  }
+
+  return qualityNote + poolNote;
+}
+
+function getLockedPickNote(team, dayId, entry) {
+  const day = DAYS.find(d => d.id === dayId);
+  const kr = kp(team);
+  const round = day?.round || '';
+  const roundIdx = ['Round of 64','Round of 32','Sweet 16','Elite 8','Final Four','Championship'].indexOf(round);
+  const isEarlyRound = roundIdx <= 1;
+  const lost = entry.lostPicks[dayId];
+  const kpd = KPD[team];
+  const target = ROUND_KP_TARGET[round] || { min:1, ideal:8, max:20 };
+  const chalkPct = estimateChalkPct(team, dayId);
+
+  if (lost) {
+    const risk = kr <= 8 ? 'Even elite teams go down — this is why you spread risk across all 15 entries.'
+      : kr <= 20 ? 'Mid-tier team with real upset exposure. Acceptable risk for this stage.'
+      : 'This was a risky pick. KenPom flagged real vulnerability here.';
+    return `❌ Pick lost — ${team} eliminated. ${risk}`;
+  }
+
+  // Compare to best available
+  const best = getBestAvailableForDay(entry, dayId, team);
+  const diff = best ? kr - best.kr : 0;
+  const tooPrecious = kr < target.min;
+  const slightlyExpensive = kr < target.ideal && kr >= target.min;
+
+  let note = '';
+
+  if (tooPrecious && isEarlyRound) {
+    note = `⚠️ Expensive burn. You used ${team} (KP#${kr}) in the ${round} — this is a team you want for the Sweet 16 and later. You're now relying on secondary options when the bracket gets tight.`;
+  } else if (diff >= 8 && best && isEarlyRound) {
+    note = `⚠️ Suboptimal. You used ${team} (KP#${kr}) when ${best.team} (KP#${best.kr}) was available — ${diff} spots better on KenPom. ${best.team} would've been the smarter burn here, saving ${team} for a harder round.`;
+  } else if (slightlyExpensive && isEarlyRound) {
+    note = `⚠️ Slightly early for ${team} (KP#${kr}). You could've saved them for the ${round==='Round of 64'?'Round of 32':'Sweet 16'} and used a lower-tier safe pick here. Not a disaster, but track this for future entries.`;
+  } else if (kr >= target.ideal && kr <= target.max) {
+    const chalkLine = chalkPct >= 60 ? ` Est. ${chalkPct}% of the pool made the same pick — no contrarian edge but solid execution.`
+      : chalkPct <= 25 ? ` Only ~${chalkPct}% of the pool went here — good contrarian value if they win.`
+      : '';
+    note = `✅ Good pick for the ${round}. ${team} (KP#${kr})${kpd?` — ${kpd.O.toFixed(1)} AdjO / ${kpd.D.toFixed(1)} AdjD`:''}. Right caliber team for this stage.${chalkLine}`;
+  } else if (kr > target.max) {
+    note = `⚠️ Below ideal tier for the ${round}. ${team} (KP#${kr}) — the numbers say they're vulnerable here. Survivable, but this is the kind of pick that ends entries.`;
+  } else {
+    note = `✅ ${team} (KP#${kr}) — confirmed pick for ${round}. ${kpd?`${kpd.O.toFixed(1)} AdjO / ${kpd.D.toFixed(1)} AdjD.`:''}`;
+  }
+
+  return note;
+}
+
+function getBestAvailableForDay(entry, dayId, excludeTeam) {
+  const proj = buildProjectedSchedule();
+  const slots = proj[dayId] || [];
+  const used = new Set(Object.values(entry.picks).filter(t => t !== excludeTeam));
+  const cands = slots
+    .filter(s => s.team && !used.has(s.team) && s.team !== excludeTeam)
+    .map(s => ({ team: s.team, prob: s.prob, kr: kp(s.team) }))
+    .filter((c, i, arr) => arr.findIndex(x => x.team === c.team) === i)
+    .sort((a, b) => a.kr - b.kr);
+  return cands[0] || null;
+}
+
+// Per-day single recommendation (used on By Day view card header)
+// Re-uses buildFullPath so it's consistent with the path view
+function getRec(entry, games) {
+  // Find which day these games belong to
+  const dayForGames = DAYS.find(d => d.games.length === games.length && d.games[0] && games[0] && d.games[0].id === games[0].id);
+  if (!dayForGames) return null;
+  if (entry.picks[dayForGames.id]) return null; // already picked, no rec needed
+  const path = buildFullPath(entry);
+  const slot = path[dayForGames.id];
+  if (!slot || slot.locked) return null;
+  const g = games.find(gm => getFav(gm) === slot.f);
+  if (!g) return null;
+  return { g, f: slot.f, p: slot.p, score: slot.p, kr: slot.kr };
+}
+
+// ============================================================
+// STATE
+// ============================================================
+const entries = Array.from({length:16}, (_,i) => ({
+  id: i,
+  name: `Pick ${i+1}`,
+  picks: {},       // dayId -> team
+  alive: true,
+  lostPicks: {}    // dayId -> team that lost (for strike-through)
+}));
+
+let selEntry = 0;
+let selDay   = DAYS[0].id;
+
+function getUsedTeams(entry) { return new Set(Object.values(entry.picks)); }
+
+// ============================================================
+// PICK ASSIGNMENT
+// ============================================================
+function assignPick(team) {
+  const entry = entries[selEntry];
+
+  // Block if team already used on a DIFFERENT day for this entry
+  const conflictDay = Object.entries(entry.picks).find(([d, t]) => t === team && d !== selDay);
+  if (conflictDay) {
+    const dayLabel = DAYS.find(d => d.id === conflictDay[0])?.short || conflictDay[0];
+    showToast(`${team} already used on ${dayLabel} for ${entry.name}`);
+    return;
+  }
+
+  if (entry.picks[selDay] === team) {
+    delete entry.picks[selDay];   // toggle off
+  } else {
+    entry.picks[selDay] = team;   // assign
+  }
+
+  clearPathCache();
+  render();
+}
+
+function showToast(msg) {
+  let t = document.getElementById('pick-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'pick-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent);color:var(--text);padding:9px 20px;border-radius:8px;font-family:DM Mono,monospace;font-size:11px;z-index:9999;pointer-events:none;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  renderEntrySlots();
+  renderContent();
+  updateAlive();
+}
+
+function renderEntrySlots() {
+  const bar = document.getElementById('entry-slots-bar');
+  bar.innerHTML = entries.map(e => {
+    const pick     = e.picks[selDay];
+    const isActive = selEntry === e.id;
+    const isOut    = !e.alive;
+
+    const pickLabel = pick
+      ? `<div style="font-family:'DM Mono',monospace;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px;color:${e.lostPicks[selDay]?'var(--red)':'var(--accent)'}">● ${pick}</div>`
+      : `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">no pick</div>`;
+
+    // One dot per pick made, in day order, bigger dot for current day
+    const dots = DAYS.filter(d => e.picks[d.id]).map(d => {
+      const lost = e.lostPicks[d.id];
+      const cur  = d.id === selDay;
+      return `<span title="${d.short}: ${e.picks[d.id]}" style="display:inline-block;width:${cur?7:5}px;height:${cur?7:5}px;border-radius:50%;flex-shrink:0;margin:0 1px;background:${lost?'var(--red)':cur?'var(--accent)':'rgba(249,115,22,0.5)'}"></span>`;
+    }).join('');
+
+    return `<div onclick="selE(${e.id})" style="
+      display:flex;flex-direction:column;justify-content:center;align-items:center;
+      padding:5px 10px;cursor:pointer;gap:3px;min-width:78px;flex-shrink:0;
+      border-bottom:3px solid ${isActive?'var(--accent)':'transparent'};
+      border-right:1px solid var(--border);
+      background:${isActive?'var(--surface2)':'transparent'};
+      opacity:${isOut?'0.4':'1'};transition:background 0.1s;
+    ">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.5px;color:${isActive?'var(--accent)':'var(--text)'}">${e.name}</div>
+      ${pickLabel}
+      <div style="display:flex;align-items:center;gap:1px;min-height:8px">${dots}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderContent() {
+  renderGrid(document.getElementById('content-area'));
+}
+
+function updateAlive() {
+  document.getElementById('alive-count').textContent = `${entries.filter(e=>e.alive).length} alive`;
+}
+
+function selE(id) { selEntry = id; render(); }
+function selD(id) { selDay = id; clearPathCache(); render(); }
+
+// Legacy modal stubs (modal HTML still exists but not used)
+function closePickModal() { document.getElementById('pick-modal').classList.remove('open'); }
+function confirmPick()    { closePickModal(); }
+
+
+
+// ============================================================
+// RESULTS REFRESH
+// ============================================================
+function openResultsModal() {
+  const sel=document.getElementById('results-day-select');
+  sel.innerHTML=DAYS.slice(0,8).map(d=>`<option value="${d.id}">${d.label} — ${d.round}</option>`).join('');
+  const daysWithPicks=DAYS.filter(d=>d.games.some(()=>entries.some(e=>Object.keys(e.picks).includes(d.id))));
+  if(daysWithPicks.length)sel.value=daysWithPicks[daysWithPicks.length-1].id;
+  document.getElementById('results-content').innerHTML=`
+    <p style="margin-bottom:0">Fetch real scores for a completed game day. AI will search for results and flag any upsets that affect your entries.</p>
+    <div style="margin:14px 0;display:flex;flex-direction:column;gap:8px">
+      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">SELECT DAY TO REFRESH</label>
+      <select id="results-day-select" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;width:100%">
+        ${DAYS.slice(0,8).map(d=>`<option value="${d.id}">${d.label} — ${d.round}</option>`).join('')}
+      </select>
+    </div>`;
+  const btn=document.getElementById('fetch-results-btn');
+  btn.textContent='Fetch Results →'; btn.disabled=false; btn.onclick=fetchResults;
+  document.getElementById('results-modal').classList.add('open');
+}
+function closeResultsModal() { document.getElementById('results-modal').classList.remove('open'); }
+
+async function fetchResults() {
+  const dayId=document.getElementById('results-day-select').value;
+  const day=DAYS.find(d=>d.id===dayId); if(!day)return;
+  const btn=document.getElementById('fetch-results-btn');
+  btn.disabled=true; btn.textContent='Fetching…';
+  document.getElementById('refresh-btn').classList.add('loading');
+  document.getElementById('results-content').innerHTML=`<div class="results-loading"><div class="spinner"></div><p>Searching for ${day.label} results…</p></div>`;
+
+  const gameList=day.games
+    .filter(g=>!g.t1.includes('TBD')&&!g.t2.includes('TBD')&&!g.t1.includes('/')&&!g.t2.includes('/'))
+    .map(g=>`- ${g.t1} (#${g.s1} seed) vs ${g.t2} (#${g.s2} seed)`).join('\n');
+
+  const prompt=`You are a sports data assistant. Today is March 16, 2026. The 2026 NCAA Men's Tournament just started this week.
+
+Look up the actual game results for ${day.label} (${day.round}):
+${gameList}
+
+Return ONLY a raw JSON array. No markdown fences, no explanation, just the JSON.
+Each object:
+- "winner": exact team name from the list
+- "loser": exact team name from the list
+- "score": "87-64" format (winner score first)
+- "upset": true if the higher-numbered seed won
+
+If games haven't been played yet or you cannot find confirmed results, return [].`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    let results=[];
+    try { const m=text.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/); if(m)results=JSON.parse(m[0]); } catch(e){}
+    applyResults(day,results);
+    renderResultsOutput(day,results);
+  } catch(err) {
+    document.getElementById('results-content').innerHTML=`<p style="color:var(--red);font-family:'DM Mono',monospace;font-size:11px">Error fetching results. Try again.</p>`;
+    btn.textContent='Retry →'; btn.disabled=false;
+  }
+  document.getElementById('refresh-btn').classList.remove('loading');
+}
+
+function applyResults(day, results) {
+  clearPathCache();
+  results.forEach(r => {
+    const g=day.games.find(g=>(g.t1===r.winner||g.t2===r.winner)&&(g.t1===r.loser||g.t2===r.loser));
+    if(!g)return;
+    gameResults[g.id]={winner:r.winner,loser:r.loser,score:r.score,upset:r.upset};
+    entries.forEach(e => { if(e.picks[day.id]===r.loser){e.lostPicks[day.id]=r.loser;e.alive=false;} });
+  });
+}
+
+function renderResultsOutput(day, results) {
+  if(!results.length){
+    document.getElementById('results-content').innerHTML=`<p style="color:var(--gold);font-family:'DM Mono',monospace;font-size:11px">No confirmed results found for ${day.label}. Games may not have been played yet.</p>`;
+    const btn=document.getElementById('fetch-results-btn'); btn.textContent='Close'; btn.disabled=false; btn.onclick=closeResultsModal; return;
+  }
+  const impacted=entries.filter(e=>e.lostPicks[day.id]);
+  const impactHtml=impacted.length
+    ?`<div class="impact-section"><div class="impact-title">⚠️ ENTRIES ELIMINATED</div>${impacted.map(e=>`<div class="impact-item"><span>${e.name}</span> picked ${e.lostPicks[day.id]} — ELIMINATED</div>`).join('')}</div>`
+    :`<div class="impact-section"><div class="impact-title">✓ POOL IMPACT</div><div class="impact-item" style="color:var(--green)">All picks today survived — all entries still alive.</div></div>`;
+  const rows=results.map(r=>`<div class="result-row"><span class="result-winner">${r.winner}</span><span style="color:var(--muted);font-size:11px">def.</span><span class="result-loser">${r.loser}</span><span class="result-score">${r.score||''}</span>${r.upset?'<span class="result-upset-tag">UPSET</span>':''}</div>`).join('');
+  document.getElementById('results-content').innerHTML=`<div class="results-scroll"><div class="results-day-label">${day.label} — ${day.round}</div>${rows}${impactHtml}</div>`;
+  const btn=document.getElementById('fetch-results-btn'); btn.textContent='Apply & Close'; btn.disabled=false; btn.onclick=()=>{closeResultsModal();render();};
+}
+
+// ============================================================
+// KENPOM DRAWER — with full bracket path projection
+// ============================================================
+
+// Find the actual first-round opponent for a team from the DAYS game data
+function getActualR64Opponent(team) {
+  for (const day of DAYS) {
+    if (day.round !== 'Round of 64') continue;
+    for (const g of day.games) {
+      if (g.t1 === team) return { opp: g.t2, gameId: g.id, dayId: day.id };
+      if (g.t2 === team) return { opp: g.t1, gameId: g.id, dayId: day.id };
+    }
+  }
+  return null;
+}
+
+// Get the region a team belongs to
+function getTeamRegion(team) {
+  const kpd = KPD[team];
+  if (kpd) return kpd.reg;
+  for (const [region, info] of Object.entries(BRACKET)) {
+    if ([...info.topHalf, ...info.bottomHalf].includes(team)) return region;
+  }
+  return null;
+}
+
+// Get which bracket half a team is in (top or bottom)
+function getTeamHalf(team) {
+  for (const [, info] of Object.entries(BRACKET)) {
+    if (info.topHalf.includes(team)) return 'top';
+    if (info.bottomHalf.includes(team)) return 'bottom';
+  }
+  return 'top';
+}
+
+// For each round, project the most likely opponent for a given team
+// Uses real game results where known, otherwise projects best survivor from opposing bracket section
+function buildTeamPath(team) {
+  const kpd = KPD[team]; if (!kpd) return [];
+  const region = kpd.reg;
+  const info = BRACKET[region];
+  if (!info) return [];
+
+  const myQ = getTeamQuadrant(team);
+  const myPodIdx = getTeamPodIndex(team);
+  const oppQ = myQ === 'q1' ? 'q2' : 'q1';
+  const proj = projectBracket();
+  const rp = proj[region];
+
+  // R64 direct opponent from pod
+  const myPod = info[myQ][myPodIdx];
+  const r64opp = myPod ? (myPod.high === team ? myPod.low : myPod.high) : null;
+
+  // R32: winner of the OTHER pod in the same pair
+  // Pods are paired: [0,1] and [2,3]
+  const pairPartnerIdx = myPodIdx % 2 === 0 ? myPodIdx + 1 : myPodIdx - 1;
+  const partnerPod = info[myQ][pairPartnerIdx];
+  const r32opp = partnerPod ? podWinner(partnerPod) : null;
+
+  // S16: winner of the other pair within same quadrant
+  const pair1Idx = myPodIdx <= 1 ? [2,3] : [0,1];
+  const r32pairWinners = pair1Idx.map(i => info[myQ][i] ? podWinner(info[myQ][i]) : null).filter(Boolean);
+  const pair1r32a = info[myQ][pair1Idx[0]] ? podWinner(info[myQ][pair1Idx[0]]) : null;
+  const pair1r32b = info[myQ][pair1Idx[1]] ? podWinner(info[myQ][pair1Idx[1]]) : null;
+  const s16opp = simBest([pair1r32a, pair1r32b].filter(Boolean));
+
+  // E8: best survivor from the opposite quadrant of same region
+  const e8opp = myQ === 'q1' ? (rp.s16q2 || simBest(info.q2.map(m => podWinner(m)))) 
+                              : (rp.s16q1 || simBest(info.q1.map(m => podWinner(m))));
+
+  // Final Four: best from paired region
+  const pairedRegion = { East:'West', West:'East', Midwest:'South', South:'Midwest' }[region];
+  const ffOpp = proj[pairedRegion]?.e8 || simBest(Object.values(BRACKET[pairedRegion]?.q1 || []).map(m => podWinner(m)));
+
+  // Championship: best from opposite semifinal bracket
+  const oppRegions = ['East','West','Midwest','South'].filter(r => {
+    const paired = { East:'West', West:'East', Midwest:'South', South:'Midwest' };
+    return r !== region && r !== paired[region];
+  });
+  const champCands = oppRegions.map(r => proj[r]?.e8).filter(Boolean);
+  const champOpp = simBest(champCands);
+
+  const rounds = [
+    { round: 'Round of 64',  label: 'R64', dayId: info.r64_days?.[team] || info.r64_day, opp: r64opp },
+    { round: 'Round of 32',  label: 'R32', dayId: info.r32_day, opp: r32opp },
+    { round: 'Sweet 16',     label: 'S16', dayId: info.s16_day, opp: s16opp },
+    { round: 'Elite 8',      label: 'E8',  dayId: info.e8_day,  opp: e8opp  },
+    { round: 'Final Four',   label: 'FF',  dayId: 'apr4',        opp: ffOpp  },
+    { round: 'Championship', label: 'NCG', dayId: 'apr6',        opp: champOpp },
+  ];
+
+  const path = [];
+  let survivalPct = 100;
+
+  for (const r of rounds) {
+    // Check for a known real result this round involving this team
+    const dayGames = DAYS.find(d => d.id === r.dayId)?.games || [];
+    const roundResult = dayGames.reduce((found, g) => {
+      const res = gameResults[g.id];
+      if (!res) return found;
+      if (res.winner === team || res.loser === team) return { res, g };
+      return found;
+    }, null);
+
+    let opp = r.opp, oppKP = opp && !opp.includes('/') ? kp(opp) : null;
+    let gameProb, isReal = false, isEliminated = false;
+
+    if (roundResult) {
+      isReal = true;
+      const { res } = roundResult;
+      if (res.loser === team) {
+        path.push({ round: r.round, label: r.label, dayId: r.dayId, opp: res.winner, oppKP: kp(res.winner), gameProb: 0, survivalPct: 0, isReal: true, isEliminated: true, score: res.score });
+        break;
+      } else {
+        opp = res.loser;
+        oppKP = kp(opp);
+        gameProb = 100;
+      }
+    } else {
+      // Clean up opp display
+      if (opp && opp.includes('/')) opp = opp.split('/')[0] + ' (FF winner)';
+      gameProb = opp && oppKP ? winProb(team, opp) : 65;
+      survivalPct = Math.round(survivalPct * (gameProb / 100));
+    }
+
+    path.push({ round: r.round, label: r.label, dayId: r.dayId, opp: opp || 'TBD', oppKP, gameProb, survivalPct, isReal, isEliminated: false });
+  }
+
+  return path;
+}
+
+function openKP(team, ev) {
+  ev.stopPropagation();
+  const d = KPD[team]; if (!d) return;
+
+  document.getElementById('kp-team-name').textContent = team;
+  document.getElementById('kp-team-meta').textContent = `${d.conf} · ${d.rec}`;
+  const kalshiPct = KALSHI[team] ?? null;
+  const kalshiDisplay = kalshiPct !== null ? `${kalshiPct}%` : '<1%';
+  document.getElementById('kp-seed-chip').innerHTML = `${d.reg} Region · #${d.seed} Seed &nbsp;|&nbsp; <span style="color:var(--accent2)">Kalshi: ${kalshiDisplay} title odds</span>`;
+
+  const em = (d.O - d.D).toFixed(1);
+
+  const profile = d.oR<=15&&d.dR<=15 ? 'Elite two-way team. Historically most reliable for deep runs.'
+    : d.oR<=15 ? 'Offense-first. Vulnerable if opponents slow pace or force tough shooting.'
+    : d.dR<=15 ? 'Defense-anchored. Grind-out style — reliable but scoring ceiling can limit deep runs.'
+    : 'Balanced mid-level team. Needs to get hot to advance deep.';
+
+  // Build the round-by-round path
+  const path = buildTeamPath(team);
+  const pathId = `path-${team.replace(/[^a-z0-9]/gi,'_')}`;
+
+  const roundRows = path.map((p, idx) => {
+    const probColor = p.isEliminated ? 'var(--red)'
+      : p.gameProb >= 80 ? 'var(--green)'
+      : p.gameProb >= 60 ? 'var(--gold)'
+      : p.gameProb >= 45 ? 'var(--accent)'
+      : 'var(--red)';
+
+    const realTag = p.isReal
+      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3)">FINAL${p.score?' '+p.score:''}</span>`
+      : `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 5px;border-radius:3px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">proj.</span>`;
+
+    if (p.isEliminated) {
+      return `<div style="display:grid;grid-template-columns:42px 1fr 50px 60px;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">${p.label}</span>
+        <div>
+          <div style="font-size:12px;color:var(--red);font-weight:600;text-decoration:line-through">${team}</div>
+          <div style="font-size:10px;color:var(--muted)">lost to ${p.opp}${p.score?' '+p.score:''}</div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red);text-align:right">OUT</span>
+        <div style="text-align:right">${realTag}</div>
+      </div>`;
+    }
+
+    const oppHasData = p.opp && p.opp !== 'TBD' && KPD[p.opp];
+    const oppClick = oppHasData
+      ? `onclick="toggleMatchup('${pathId}',${idx},'${team.replace(/'/g,"\\'")}','${p.opp.replace(/'/g,"\\'")}');event.stopPropagation()" style="cursor:pointer;border-bottom:1px dashed var(--accent2);display:inline"`
+      : '';
+
+    return `
+    <div id="${pathId}-row-${idx}" style="border-bottom:1px solid var(--border)">
+      <div style="display:grid;grid-template-columns:42px 1fr 50px 60px;align-items:center;gap:8px;padding:9px 0">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">${p.label}</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">
+            vs <span ${oppClick}>${p.opp}</span>
+            ${oppHasData ? `<span style="font-size:9px;color:var(--accent2);margin-left:4px">ⓘ</span>` : ''}
+          </div>
+          <div style="font-size:10px;color:var(--muted)">${p.oppKP ? `KP#${p.oppKP}` : ''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:${probColor};font-weight:600">${p.gameProb}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">win</div>
+        </div>
+        <div style="text-align:right">${realTag}</div>
+      </div>
+      <div id="${pathId}-matchup-${idx}" style="display:none"></div>
+    </div>`;
+  }).join('');
+
+  // Cumulative "make it to X" probabilities
+  const makeFinalFour = path.find(p => p.label === 'FF')?.survivalPct ?? 0;
+  const makeChamp = path.find(p => p.label === 'NCG')?.survivalPct ?? 0;
+  const makeS16 = path.find(p => p.label === 'S16')?.survivalPct ?? 0;
+
+  // Survivor pool verdict
+  const target = ROUND_KP_TARGET;
+  const burnVerdict = d.r <= 5
+    ? `❌ Don't burn in Round of 64/32. Save for Sweet 16+ — this is one of the best teams in the field.`
+    : d.r <= 10
+    ? `⚠️ Tempting but expensive for early rounds. Ideal in the Sweet 16 or later when the field thins.`
+    : d.r <= 20
+    ? `✅ Right caliber to burn in Round of 64 or 32. Solid win probability, preserves elite names.`
+    : `✅ Burn now — low future value. Use in Round of 64 and protect your premium options.`;
+
+  document.getElementById('kp-body').innerHTML = `
+    <div class="kp-section">
+      <div class="kp-section-title">Overall Rating</div>
+      <div class="kp-stat-grid">
+        <div class="kp-stat"><div class="kp-stat-label">KenPom Rank</div><div class="kp-stat-value ${rCls(d.r)}">#${d.r}</div><div class="kp-stat-sub">of 362 D-I teams</div></div>
+        <div class="kp-stat"><div class="kp-stat-label">Eff. Margin</div><div class="kp-stat-value ${rCls(d.r)}">${em > 0 ? '+' : ''}${em}</div><div class="kp-stat-sub">pts per 100 poss</div></div>
+        <div class="kp-stat"><div class="kp-stat-label">Adj. Tempo</div><div class="kp-stat-value avg">${d.T.toFixed(1)}</div><div class="kp-stat-sub">poss/40 min</div></div>
+        <div class="kp-stat"><div class="kp-stat-label">Future Value</div><div class="kp-stat-value ${fvCls(team)}" style="font-size:14px;padding-top:4px">${fv(team)}</div><div class="kp-stat-sub">survivor pool</div></div>
+      </div>
+    </div>
+
+    <div class="kp-section">
+      <div class="kp-section-title">Efficiency Breakdown</div>
+      <div class="kp-bar-row"><span class="kp-bar-label">Offense (AdjO)</span><div class="kp-bar-track"><div class="kp-bar-fill ${bCls(d.oR)}" style="width:${bW(d.oR)}%"></div></div><span class="kp-bar-val">#${d.oR}</span></div>
+      <div class="kp-bar-row"><span class="kp-bar-label">Defense (AdjD)</span><div class="kp-bar-track"><div class="kp-bar-fill ${bCls(d.dR)}" style="width:${bW(d.dR)}%"></div></div><span class="kp-bar-val">#${d.dR}</span></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">${profile}</div>
+    </div>
+
+    <div class="kp-section">
+      <div class="kp-section-title">Tournament Path — Round by Round</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px">Game win % · cumulative survival shown below</div>
+      <div style="margin-bottom:2px">${roundRows || '<div style="color:var(--muted);font-size:12px">No bracket data available</div>'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:14px">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">MAKE S16</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${makeS16>=50?'var(--green)':makeS16>=25?'var(--gold)':'var(--red)'}">${makeS16}%</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">FINAL FOUR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${makeFinalFour>=30?'var(--green)':makeFinalFour>=15?'var(--gold)':'var(--red)'}">${makeFinalFour}%</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">WIN IT ALL</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${makeChamp>=20?'var(--green)':makeChamp>=8?'var(--gold)':'var(--red)'}">${makeChamp}%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kp-section">
+      <div class="kp-section-title">Survivor Pool Verdict</div>
+      <div class="kp-survivor-box">
+        <div class="kp-survivor-label">BURN NOW OR SAVE?</div>
+        <div class="kp-survivor-text">${burnVerdict}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('kp-overlay').classList.add('open');
+  document.getElementById('kp-drawer').classList.add('open');
+}
+
+function closeKPDrawer() {
+  document.getElementById('kp-overlay').classList.remove('open');
+  document.getElementById('kp-drawer').classList.remove('open');
+}
+
+// ============================================================
+// POOL DATA MODAL
+// ============================================================
+function openPoolDataModal() {
+  document.getElementById('pool-modal').classList.add('open');
+  document.getElementById('pool-picks-input').value = '';
+  document.getElementById('pool-parse-preview').textContent = '';
+}
+function closePoolModal() {
+  document.getElementById('pool-modal').classList.remove('open');
+}
+function savePoolPicks() {
+  const dayId = document.getElementById('pool-day-select').value;
+  const raw = document.getElementById('pool-picks-input').value.trim();
+  if (!raw) { closePoolModal(); return; }
+
+  const counts = {};
+  raw.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    // Support "Team x3" or "Team (3)" or just "Team"
+    const multiMatch = trimmed.match(/^(.+?)\s*[x×\(](\d+)[\)]?$/i);
+    if (multiMatch) {
+      const t = multiMatch[1].trim(), n = parseInt(multiMatch[2]);
+      counts[t] = (counts[t] || 0) + n;
+    } else {
+      counts[trimmed] = (counts[trimmed] || 0) + 1;
+    }
+  });
+
+  POOL_PICKS[dayId] = counts;
+  const summary = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${t}: ${n}`).join(' · ');
+  document.getElementById('pool-parse-preview').textContent = `Saved: ${summary}`;
+  setTimeout(() => { closePoolModal(); render(); }, 800);
+}
+
+// ============================================================
+// TEAM GRID VIEW
+// Rows = teams sorted by KenPom, Columns = 6 tournament rounds
+// Each cell shows: win %, projected opponent, proj/real tag
+// Color intensity = win probability
+// ============================================================
+
+let gridFilter = 'all';   // 'all' | dayId (e.g. 'mar19', 'mar20', etc.)
+let gridSort   = 'kenpom'; // 'kenpom' | 'r64' | 'championship' | 'survival'
+
+// Map dayId -> which round label it corresponds to
+const DAY_TO_ROUND_LABEL = {
+  'mar19': 'R64', 'mar20': 'R64',
+  'mar21': 'R32', 'mar22': 'R32',
+  'mar26': 'S16', 'mar27': 'S16',
+  'mar28': 'E8',  'mar29': 'E8',
+  'apr4':  'FF',  'apr6':  'NCG',
+};
+
+// Get which dayId a team plays on for a given round label
+function getTeamDayForRound(team, roundLabel) {
+  const reg = KPD[team]?.reg;
+  if (!reg || !BRACKET[reg]) return null;
+  const info = BRACKET[reg];
+  if (roundLabel === 'R64') {
+    // Use per-team day map since games are mixed Thu/Fri
+    return info.r64_days?.[team] || info.r64_day || null;
+  }
+  const map = { R32: info.r32_day, S16: info.s16_day, E8: info.e8_day, FF: 'apr4', NCG: 'apr6' };
+  return map[roundLabel] || null;
+}
+
+// Precompute all team paths (cached per render)
+let _pathCache = {};
+function getTeamPathCached(team) {
+  if (!_pathCache[team]) _pathCache[team] = buildTeamPath(team);
+  return _pathCache[team];
+}
+function clearPathCache() { _pathCache = {}; }
+
+function renderGrid(area) {
+  clearPathCache();
+  const entry    = entries[selEntry];
+  const usedTeams = getUsedTeams(entry);
+  const pickedToday = entry.picks[selDay] || null;
+
+  const activeRoundLabel = DAY_TO_ROUND_LABEL[gridFilter] || null; // e.g. 'R64' when mar19/mar20 selected
+
+  // Collect all teams with KPD data — only favorites in at least one round
+  let teams = Object.keys(KPD).filter(t => {
+    if (KPD[t].seed > 16) return false;
+    // Day filter: only show teams playing on the selected day
+    if (gridFilter !== 'all' && activeRoundLabel) {
+      const teamDay = getTeamDayForRound(t, activeRoundLabel);
+      if (teamDay !== gridFilter) return false;
+    }
+    // Must be a projected favorite in at least one round
+    const path = getTeamPathCached(t);
+    return path.some(p => !p.isEliminated && p.gameProb > 50);
+  });
+
+  // When day is selected, default sort to win% for that round
+  const effectiveSort = (gridFilter !== 'all' && gridSort === 'kenpom') ? 'win' : gridSort;
+
+  // Sort
+  if (effectiveSort === 'kenpom') {
+    teams.sort((a, b) => KPD[a].r - KPD[b].r);
+  } else if (effectiveSort === 'win' || effectiveSort === 'r64') {
+    teams.sort((a, b) => {
+      const ra = activeRoundLabel, rb = activeRoundLabel;
+      const pa = getTeamPathCached(a).find(p => p.label === (ra||'R64'))?.gameProb ?? 0;
+      const pb = getTeamPathCached(b).find(p => p.label === (rb||'R64'))?.gameProb ?? 0;
+      return pb - pa;
+    });
+  } else if (effectiveSort === 'championship') {
+    teams.sort((a, b) => {
+      const pa = getTeamPathCached(a).find(p => p.label === 'NCG')?.survivalPct ?? 0;
+      const pb = getTeamPathCached(b).find(p => p.label === 'NCG')?.survivalPct ?? 0;
+      return pb - pa;
+    });
+  } else if (effectiveSort === 'survival') {
+    teams.sort((a, b) => {
+      const pa = getTeamPathCached(a).find(p => p.label === 'FF')?.survivalPct ?? 0;
+      const pb = getTeamPathCached(b).find(p => p.label === 'FF')?.survivalPct ?? 0;
+      return pb - pa;
+    });
+  }
+
+  // When day is filtered, bold + highlight that round's column header
+  const ROUNDS = [
+    { key: 'R64', label: 'R64', sub: 'Mar 19-20' },
+    { key: 'R32', label: 'R32', sub: 'Mar 21-22' },
+    { key: 'S16', label: 'S16', sub: 'Mar 26-27' },
+    { key: 'E8',  label: 'E8',  sub: 'Mar 28-29' },
+    { key: 'FF',  label: 'FF',  sub: 'Apr 4'     },
+    { key: 'NCG', label: 'NCG', sub: 'Apr 6'     },
+  ];
+
+  function pctClass(p) {
+    if (p >= 85) return 'great';
+    if (p >= 70) return 'good';
+    if (p >= 55) return 'ok';
+    if (p >= 40) return 'risky';
+    return 'bad';
+  }
+
+  // Build rows
+  let rowsHtml = '';
+  let prevRegion = null;
+
+  for (const team of teams) {
+    const d = KPD[team];
+    const path = getTeamPathCached(team);
+    const isUsed = usedTeams.has(team);
+    const regionChange = gridFilter === 'all' && gridSort === 'kenpom' && d.reg !== prevRegion;
+    prevRegion = d.reg;
+
+    const pathMap = {};
+    for (const p of path) pathMap[p.label] = p;
+
+    const cells = ROUNDS.map(r => {
+      const isActiveRound = activeRoundLabel && r.key === activeRoundLabel;
+      const teamDayForRound = getTeamDayForRound(team, r.key);
+      const isThisDayExact = gridFilter !== 'all' && teamDayForRound === gridFilter;
+      const activeColStyle = isActiveRound ? 'outline:2px solid rgba(59,130,246,0.4);outline-offset:-2px;' : '';
+
+      const p = pathMap[r.key];
+      if (!p) {
+        return `<td class="round-cell" style="${activeColStyle}"><div class="prob-pill"><span class="prob-pct pct-na" style="font-size:13px">—</span></div></td>`;
+      }
+      if (p.isEliminated && r.key === p.label) {
+        return `<td class="round-cell eliminated" style="${activeColStyle}">
+          <div class="prob-pill">
+            <span class="prob-pct pct-bad">OUT</span>
+            <span class="prob-opp">${p.opp.split(' ').slice(-1)[0]}</span>
+          </div>
+        </td>`;
+      }
+      const roundOrder = ['R64','R32','S16','E8','FF','NCG'];
+      const elimRound = path.find(pp => pp.isEliminated);
+      if (elimRound && roundOrder.indexOf(r.key) > roundOrder.indexOf(elimRound.label)) {
+        return `<td class="round-cell" style="${activeColStyle}"><div class="prob-pill"><span class="prob-pct pct-na" style="font-size:13px">—</span></div></td>`;
+      }
+
+      const cls = pctClass(p.gameProb);
+      const oppShort = p.opp && p.opp !== 'TBD'
+        ? p.opp.replace(' (FF winner)','').split(' ').slice(-1)[0]
+        : 'TBD';
+      const projDot = p.isReal
+        ? `<span class="prob-proj" style="color:var(--green)">final</span>`
+        : `<span class="prob-proj">proj</span>`;
+
+      // Get game-level data for R64 cells
+      let gameData = null;
+      if (r.key === 'R64') {
+        for (const day of DAYS) {
+          if (day.round !== 'Round of 64') continue;
+          for (const g of day.games) {
+            if (g.t1 === team || g.t2 === team) { gameData = g; break; }
+          }
+          if (gameData) break;
+        }
+      }
+
+      // Build three-line data display
+      const isTeamFav = gameData && gameData.fav === team;
+      const spreadLine = gameData && gameData.spread != null
+        ? `${isTeamFav ? gameData.spread : -gameData.spread}`
+        : null;
+      // Use live Kalshi data if available, else fall back to moneyline-derived
+      const kalshiGameProb = gameData
+        ? (KALSHI_GAME[gameData.id] != null
+            ? (isTeamFav ? KALSHI_GAME[gameData.id] : 100 - KALSHI_GAME[gameData.id])
+            : (gameData.fav_ml != null
+                ? (isTeamFav ? mlToProb(gameData.fav_ml) : 100 - mlToProb(gameData.fav_ml))
+                : null))
+        : null;
+      const kenpomProb = p.gameProb;
+
+      // Mark if picked
+      const thisDayId = getTeamDayForRound(team, r.key);
+      const pickedHere = entry && thisDayId && entry.picks[thisDayId] === team;
+      const pickedBorder = pickedHere ? 'box-shadow:0 0 0 2px var(--accent) inset;border-radius:5px;' : '';
+
+      if (r.key === 'R64' && gameData) {
+        // Three-data-point layout for R64
+        const spreadColor = spreadLine && parseFloat(spreadLine) <= -15 ? 'var(--green)'
+          : spreadLine && parseFloat(spreadLine) <= 0 ? 'var(--accent2)'
+          : 'var(--accent)';
+        const kpColor = kenpomProb >= 80 ? 'var(--green)' : kenpomProb >= 60 ? 'var(--accent2)' : kenpomProb >= 45 ? 'var(--gold)' : 'var(--red)';
+        const kshColor = kalshiGameProb != null ? (kalshiGameProb >= 80 ? 'var(--green)' : kalshiGameProb >= 60 ? 'var(--accent2)' : kalshiGameProb >= 45 ? 'var(--gold)' : 'var(--red)') : 'var(--muted)';
+
+        return `<td class="round-cell cell-bg-${cls}" style="${activeColStyle}" onclick="handleGridCellClick('${team.replace(/'/g,"\\'")}','${r.key}',event)" title="${team} vs ${p.opp}">
+          <div style="${pickedBorder}padding:2px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;text-align:center;margin-bottom:3px">
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">SPREAD</div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">KALSHI</div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">KP</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;text-align:center">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${spreadColor};line-height:1">${spreadLine != null ? spreadLine : '—'}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${kshColor};line-height:1">${kalshiGameProb != null ? kalshiGameProb+'%' : '—'}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${kpColor};line-height:1">${kenpomProb}%</div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center;margin-top:2px">${oppShort} · ${gameData.total ? 'O/U '+gameData.total : ''}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7px;color:${kalshiLastSync?'var(--green)':'var(--muted)'};text-align:center;margin-top:1px;opacity:.7">${kalshiLastSync ? '● live' : '● seeded'}</div>
+          </div>
+          ${pickedHere ? `<span class="used-flag">✓ PICK</span>` : ''}
+        </td>`;
+      }
+
+      // Default layout for R32+ (KenPom only, no game odds available)
+      return `<td class="round-cell cell-bg-${cls}" style="${activeColStyle}" onclick="handleGridCellClick('${team.replace(/'/g,"\\'")}','${r.key}',event)" title="${team} vs ${p.opp} · ${p.gameProb}% win">
+        <div class="prob-pill" style="${pickedBorder}">
+          <span class="prob-pct pct-${cls}">${p.gameProb}%</span>
+          <span class="prob-opp">${oppShort}</span>
+          ${projDot}
+        </div>
+        ${pickedHere ? `<span class="used-flag">✓ PICK</span>` : ''}
+      </td>`;
+    }).join('');
+
+    // Survival mini bar
+    const ffPct = pathMap['FF']?.survivalPct ?? 0;
+    const barPct = Math.min(Math.round(ffPct * 2.5), 100);
+    const barColor = ffPct >= 30 ? 'var(--green)' : ffPct >= 15 ? 'var(--gold)' : 'var(--red)';
+
+    const kalshiPct   = KALSHI[team] ?? null;
+    const kalshiStr   = kalshiPct !== null ? `${kalshiPct}%` : '<1%';
+    const kalshiColor = kalshiPct >= 15 ? 'var(--green)' : kalshiPct >= 7 ? 'var(--accent2)' : kalshiPct >= 3 ? 'var(--gold)' : 'var(--muted)';
+
+    // Pick state for this team
+    const isPickedToday  = pickedToday === team;                // selected for active day
+    const isUsedOtherDay = usedTeams.has(team) && !isPickedToday; // used on a different day — grey out
+    // Only grey out if day filter matches a round the team plays in
+    const teamPlayingToday = gridFilter === 'all' || getTeamDayForRound(team, activeRoundLabel || 'R64') === gridFilter;
+
+    // Which day did they use this team?
+    const usedOnDayId  = isUsedOtherDay ? Object.entries(entry.picks).find(([,t]) => t === team)?.[0] : null;
+    const usedOnLabel  = usedOnDayId ? (DAYS.find(d => d.id === usedOnDayId)?.short || usedOnDayId) : null;
+
+    const cellOpacity  = isUsedOtherDay ? '0.28' : '1';
+    const teamCellBg   = isPickedToday
+      ? 'background:rgba(249,115,22,0.12);border-left:3px solid var(--accent);'
+      : isUsedOtherDay ? 'opacity:0.28;' : '';
+
+    rowsHtml += `<tr>
+      <td class="team-cell" style="${teamCellBg}cursor:pointer;" onclick="assignPick('${team.replace(/'/g,"\\'")}')">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px">
+          <div class="team-cell-name" style="color:${isUsedOtherDay?'var(--muted)':isPickedToday?'var(--accent)':'var(--text)'};${isUsedOtherDay?'text-decoration:line-through;':''}" onclick="event.stopPropagation();openKP('${team.replace(/'/g,"\\'")}',event)">
+            ${isPickedToday ? '✓ ' : ''}${team}
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:${kalshiColor};flex-shrink:0">${kalshiStr}</span>
+        </div>
+        <div class="team-cell-meta">#${d.seed} · KP#${d.r} · ${d.reg}</div>
+        ${isUsedOtherDay
+          ? `<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--red);margin-top:2px">used ${usedOnLabel}</div>`
+          : `<div style="height:3px;margin-top:4px;border-radius:2px;background:var(--border);overflow:hidden"><div style="height:100%;width:${barPct}%;background:${barColor};border-radius:2px"></div></div>`
+        }
+      </td>
+      ${cells}
+    </tr>`;
+  }
+
+  const entryLabel = pickedToday
+    ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent)">✓ ${entry.name}: <strong>${pickedToday}</strong> — click to change</span>`
+    : `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold)">▶ ${entry.name}: click a team name to pick</span>`;
+
+  // Active day info for context
+  const activeDayObj = gridFilter !== 'all' ? DAYS.find(d => d.id === gridFilter) : null;
+  const activeDayBanner = activeDayObj
+    ? `<div style="background:rgba(59,130,246,0.08);border-bottom:1px solid rgba(59,130,246,0.2);padding:7px 20px;font-family:'DM Mono',monospace;font-size:10px;color:var(--accent2)">
+        📅 Showing ${activeDayObj.label} — ${activeDayObj.round} · ${teams.length} teams playing · Column <strong>${activeRoundLabel}</strong> is the pick day
+       </div>`
+    : '';
+
+  // Day filter buttons — show all 10 game days
+  const dayBtns = [
+    { id: 'all', label: 'ALL' },
+    ...DAYS.slice(0, 8).map(d => ({ id: d.id, label: d.short, round: d.round }))
+  ].map(b => {
+    const isActive = gridFilter === b.id;
+    const hasResults = b.id !== 'all' && DAYS.find(d=>d.id===b.id)?.games.some(g=>gameResults[g.id]);
+    return `<button class="grid-filter-btn ${isActive?'active':''}" onclick="setGridFilter('${b.id}')"
+      style="${hasResults?'border-color:var(--green);':''}"
+      title="${b.round||''}">${b.label}${hasResults?' ✓':''}</button>`;
+  }).join('');
+
+  // Column headers — highlight active round
+  const colHeaders = ROUNDS.map(r => {
+    const isActive = r.key === activeRoundLabel;
+    return `<th style="${isActive?'background:rgba(59,130,246,0.12);color:var(--accent2);border-bottom:2px solid var(--accent2);':''}">
+      <div style="font-size:${isActive?'11':'10'}px;font-weight:${isActive?'600':'400'}">${r.label}${isActive?' ◀':''}</div>
+      <div style="font-size:8px;color:${isActive?'var(--accent2)':'var(--muted)'};font-weight:400;margin-top:2px">${r.sub}</div>
+    </th>`;
+  }).join('');
+
+  const gridHtml = `
+    <div class="grid-wrap">
+      <div class="grid-controls">
+        <span class="grid-filter-label">DAY:</span>
+        ${dayBtns}
+        <span class="grid-filter-label" style="margin-left:8px">SORT:</span>
+        <select class="grid-sort-select" onchange="setGridSort(this.value)">
+          <option value="kenpom" ${gridSort==='kenpom'?'selected':''}>KenPom Rank</option>
+          <option value="r64" ${gridSort==='r64'?'selected':''}>Win % (Round)</option>
+          <option value="championship" ${gridSort==='championship'?'selected':''}>Title Odds</option>
+          <option value="survival" ${gridSort==='survival'?'selected':''}>Final Four %</option>
+        </select>
+        ${entryLabel}
+        <div class="grid-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.5)"></div>≥85%</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.25)"></div>70%</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,0.35)"></div>55%</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(249,115,22,0.3)"></div>40%</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.35)"></div>&lt;40%</div>
+        </div>
+      </div>
+      ${activeDayBanner}
+      <div id="grid-matchup-panel" style="display:none;padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border)"></div>
+      <div class="grid-table-wrap">
+        <table class="grid-table">
+          <thead>
+            <tr>
+              <th class="team-col">TEAM <span style="font-weight:400;opacity:.5">(${teams.length})</span> <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--accent2);float:right;font-weight:400">KALSHI%</span></th>
+              ${colHeaders}
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  area.innerHTML = gridHtml;
+}
+
+function setGridFilter(f) {
+  gridFilter = f;
+  if (f !== 'all') selDay = f;  // keep pick day in sync with day filter
+  renderContent();
+}
+function setGridSort(s) { gridSort = s; renderContent(); }
+
+let _gridMatchupOpen = null;
+function handleGridCellClick(team, roundKey, ev) {
+  ev.stopPropagation();
+  const path = getTeamPathCached(team);
+  const slot = path.find(p => p.label === roundKey);
+  const panel = document.getElementById('grid-matchup-panel');
+  if (!panel) return;
+
+  const key = `${team}-${roundKey}`;
+  if (_gridMatchupOpen === key) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    _gridMatchupOpen = null;
+    return;
+  }
+  _gridMatchupOpen = key;
+
+  if (!slot || !slot.opp || slot.opp === 'TBD' || !KPD[slot.opp]) {
+    panel.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${team} · ${roundKey}: opponent TBD or no KenPom data available</div>`;
+    panel.style.display = 'block';
+    return;
+  }
+
+  const card = buildMatchupCard(team, slot.opp);
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--text)">${roundKey} MATCHUP — ${team.toUpperCase()} vs ${slot.opp.toUpperCase()}</span>
+    <button onclick="document.getElementById('grid-matchup-panel').style.display='none';_gridMatchupOpen=null" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px">✕</button>
+  </div>
+  <div style="max-width:480px">${card}</div>`;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+// ============================================================
+let _openMatchup = null; // track which row is open
+
+function toggleMatchup(pathId, rowIdx, team, opp) {
+  const el = document.getElementById(`${pathId}-matchup-${rowIdx}`);
+  if (!el) return;
+
+  // Close if already open
+  if (_openMatchup === `${pathId}-${rowIdx}`) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    _openMatchup = null;
+    return;
+  }
+
+  // Close any other open matchup
+  if (_openMatchup) {
+    const parts = _openMatchup.split('-matchup-');
+    // find and close the old one by clearing all matchup divs
+    document.querySelectorAll('[id$="-matchup-0"],[id$="-matchup-1"],[id$="-matchup-2"],[id$="-matchup-3"],[id$="-matchup-4"],[id$="-matchup-5"]').forEach(e => {
+      e.style.display = 'none'; e.innerHTML = '';
+    });
+  }
+
+  el.innerHTML = buildMatchupCard(team, opp);
+  el.style.display = 'block';
+  _openMatchup = `${pathId}-${rowIdx}`;
+}
+
+function buildMatchupCard(t1, t2) {
+  const d1 = KPD[t1], d2 = KPD[t2];
+  if (!d1 || !d2) return '';
+
+  const p1wins = winProb(t1, t2);
+  const p2wins = 100 - p1wins;
+
+  // Efficiency margin advantage
+  const em1 = (d1.O - d1.D).toFixed(1);
+  const em2 = (d2.O - d2.D).toFixed(1);
+
+  // Identify the key matchup edges
+  const offEdge = d1.oR < d2.oR ? t1 : t2;
+  const defEdge = d1.dR < d2.dR ? t1 : t2;
+  const bothSame = offEdge === defEdge;
+
+  // Pace: faster team benefits if they can set the tempo
+  const fasterTeam = d1.T > d2.T ? t1 : t2;
+  const paceDiff = Math.abs(d1.T - d2.T).toFixed(1);
+
+  // Build a direct analysis sentence
+  let analysis = '';
+  if (p1wins >= 80) {
+    analysis = `${t1} is a heavy favorite. KP#${d1.r} vs KP#${d2.r} — a ${d1.r < d2.r ? d2.r - d1.r : d1.r - d2.r}-spot KenPom gap. This should not be close unless ${t2} has a historically hot shooting night.`;
+  } else if (p1wins >= 65) {
+    analysis = `${t1} is the clear favorite but this is a real game. ${d1.r < d2.r ? `${t1} is the better team on both sides of the ball` : `${t2} has a slight KenPom edge`}. ${bothSame ? `${offEdge} dominates both efficiency categories.` : `${offEdge} has the offensive edge, ${defEdge} has the defensive edge.`}`;
+  } else if (p1wins >= 52) {
+    analysis = `Lean ${t1} but this is genuinely competitive. KenPom margin is thin — tempo, shooting variance, and single possessions will decide this. ${paceDiff > 4 ? `${fasterTeam} wants to push pace (${(t1===fasterTeam?d1:d2).T.toFixed(1)} poss/40 min) — if they get it, they have an edge.` : 'Similar pace teams — expect a grind.'}`;
+  } else if (p1wins >= 45) {
+    analysis = `Coin flip. KenPom says ${p1wins > 50 ? t1 : t2} has a marginal edge (${Math.max(p1wins, p2wins)}%) but this game could go either way. ${bothSame ? `${offEdge} edges both categories` : `${offEdge} scores better, ${defEdge} defends better`} — which side matters more in a close game?`;
+  } else {
+    analysis = `${t2} is actually the KenPom favorite here at ${p2wins}%. ${t1} (KP#${d1.r}) is the underdog despite potentially having a better seed/name recognition. Don't assume ${t1} wins this.`;
+  }
+
+  // Key matchup factors
+  const factors = [];
+  if (Math.abs(d1.oR - d2.oR) >= 15) factors.push(`${d1.oR < d2.oR ? t1 : t2} has a big offensive edge (#${Math.min(d1.oR,d2.oR)} vs #${Math.max(d1.oR,d2.oR)} AdjO)`);
+  if (Math.abs(d1.dR - d2.dR) >= 15) factors.push(`${d1.dR < d2.dR ? t1 : t2} has a big defensive edge (#${Math.min(d1.dR,d2.dR)} vs #${Math.max(d1.dR,d2.dR)} AdjD)`);
+  if (paceDiff > 5) factors.push(`Big pace gap — ${fasterTeam} runs, ${t1===fasterTeam?t2:t1} grinds. Whoever controls tempo has the edge`);
+  if (factors.length === 0) factors.push('Balanced matchup — no single dominant factor, execution and shooting variance decide this');
+
+  const barW1 = p1wins, barW2 = p2wins;
+  const c1 = p1wins >= 65 ? 'var(--green)' : p1wins >= 52 ? 'var(--gold)' : p1wins >= 45 ? 'var(--muted)' : 'var(--red)';
+  const c2 = p2wins >= 65 ? 'var(--green)' : p2wins >= 52 ? 'var(--gold)' : p2wins >= 45 ? 'var(--muted)' : 'var(--red)';
+
+  // Vegas spread lookup for this matchup
+  const spreadData = (() => {
+    for (const day of DAYS) {
+      if (day.round !== 'Round of 64') continue;
+      for (const g of day.games) {
+        if ((g.t1 === t1 && g.t2 === t2) || (g.t1 === t2 && g.t2 === t1)) {
+          if (g.spread) return g;
+        }
+      }
+    }
+    return null;
+  })();
+
+  const spreadLine = spreadData
+    ? `<div style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;margin-bottom:10px;padding:7px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">
+        <span style="color:var(--muted)">VEGAS LINE: </span>
+        <span style="color:var(--text);font-weight:600">${spreadData.fav} ${spreadData.spread}</span>
+        <span style="color:var(--muted);margin-left:10px">O/U ${spreadData.total}</span>
+        ${Math.abs(p1wins - 50) > 10 && ((p1wins > 50) !== (spreadData.fav === t1)) ? `<span style="color:var(--gold);margin-left:8px">⚠️ KenPom disagrees with line</span>` : ''}
+      </div>`
+    : '';
+
+  return `<div style="background:var(--surface);border:1px solid var(--accent2);border-radius:8px;padding:14px;margin:0 0 10px 0">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent2);margin-bottom:10px;letter-spacing:1px">MATCHUP BREAKDOWN</div>
+    ${spreadLine}
+
+    <!-- Win probability bar -->
+    <div style="display:flex;align-items:center;gap:0;height:28px;border-radius:5px;overflow:hidden;margin-bottom:10px">
+      <div style="width:${barW1}%;background:${c1};display:flex;align-items:center;justify-content:center;transition:width .3s">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;white-space:nowrap;padding:0 6px">${t1.split(' ').slice(-1)[0]} ${barW1}%</span>
+      </div>
+      <div style="width:${barW2}%;background:${c2};display:flex;align-items:center;justify-content:center;transition:width .3s">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;white-space:nowrap;padding:0 6px">${barW2}% ${t2.split(' ').slice(-1)[0]}</span>
+      </div>
+    </div>
+
+    <!-- Side-by-side stats -->
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;margin-bottom:10px;font-size:11px">
+      <div style="text-align:right">
+        <div style="font-weight:600;color:var(--text)">${t1}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">KP#${d1.r} · ${d1.conf}</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;padding-top:2px">
+        <span>vs</span>
+      </div>
+      <div>
+        <div style="font-weight:600;color:var(--text)">${t2}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">KP#${d2.r} · ${d2.conf}</div>
+      </div>
+    </div>
+
+    <!-- Stat comparison rows -->
+    ${[
+      { label:'Eff. Margin', v1: em1, v2: em2, better: parseFloat(em1)>parseFloat(em2)?'t1':'t2' },
+      { label:'Offense Rank', v1: `#${d1.oR}`, v2: `#${d2.oR}`, better: d1.oR<d2.oR?'t1':'t2' },
+      { label:'Defense Rank', v1: `#${d1.dR}`, v2: `#${d2.dR}`, better: d1.dR<d2.dR?'t1':'t2' },
+      { label:'Tempo', v1: d1.T.toFixed(1), v2: d2.T.toFixed(1), better: 'none' },
+    ].map(row => `
+      <div style="display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;gap:4px;padding:4px 0;border-top:1px solid var(--border)">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;text-align:right;color:${row.better==='t1'?'var(--green)':'var(--text)'};font-weight:${row.better==='t1'?'600':'400'}">${row.v1}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center">${row.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:${row.better==='t2'?'var(--green)':'var(--text)'};font-weight:${row.better==='t2'?'600':'400'}">${row.v2}</div>
+      </div>`).join('')}
+
+    <!-- Analysis -->
+    <div style="margin-top:10px;font-size:11px;color:var(--text);line-height:1.55;padding:10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent2)">
+      ${analysis}
+    </div>
+    ${factors.length ? `<div style="margin-top:8px">
+      ${factors.map(f => `<div style="font-size:10px;color:var(--muted);padding:3px 0;border-top:1px solid var(--border)">→ ${f}</div>`).join('')}
+    </div>` : ''}
+  </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
